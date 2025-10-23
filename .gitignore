@@ -1,0 +1,51 @@
+# Default ignored files
+/shelf/
+/.idea/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+/.idea/
+
+
+
+/front/node_modules
+/front/.pnp
+/front/.pnp.*
+/front/.yarn/*
+/front/!.yarn/patches
+/front/!.yarn/plugins
+/front/!.yarn/releases
+/front/!.yarn/versions
+
+# testing
+/front/coverage
+
+# next.js
+/front/.next/
+/front/out/
+
+# production
+/front/build
+
+# misc
+/front/.DS_Store
+/front/*.pem
+
+# debug
+/front/npm-debug.log*
+/front/yarn-debug.log*
+/front/yarn-error.log*
+/front/.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+/front/.env*
+
+# vercel
+/front/.vercel
+
+# typescript
+/front/*.tsbuildinfo
+/front/next-env.d.ts
