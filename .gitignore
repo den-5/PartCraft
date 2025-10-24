@@ -7,7 +7,7 @@
 /dataSources/
 /dataSources.local.xml
 
-/.idea/
+/back/.idea/
 
 
 
@@ -19,6 +19,7 @@
 /front/!.yarn/plugins
 /front/!.yarn/releases
 /front/!.yarn/versions
+/front/.idea/
 
 # testing
 /front/coverage
