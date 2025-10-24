@@ -2,13 +2,15 @@ package com.partcraft.back.util;
 
 import com.partcraft.back.dto.CreateUserDTO;
 import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.exception.ValidationException;
+
 import java.util.regex.Pattern;
 
 public class VerifyUserDataFormat {
 
-    public static boolean verifyCreateUserDTO(CreateUserDTO createUserDTO) throws UserServiceException {
+    public static boolean verifyCreateUserDTO(CreateUserDTO createUserDTO) throws ValidationException {
         if (createUserDTO == null) {
-            throw new UserServiceException("no user data provided");
+            throw new ValidationException("no user data provided");
         }
 
         return verifyEmailFormat(createUserDTO.getEmail()) && verifyUsernameFormat(createUserDTO.getUsername()) &&
@@ -16,39 +18,39 @@ public class VerifyUserDataFormat {
     }
 
 
-    public static boolean verifyEmailFormat(String email) throws UserServiceException {
+    public static boolean verifyEmailFormat(String email) throws ValidationException {
         if (email == null || email.trim().isEmpty()) {
-            throw new UserServiceException("email is null or empty");
+            throw new ValidationException("email is null or empty");
         }
 
         String regex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]{2,}$";
         if (!Pattern.matches(regex, email.trim())) {
-            throw new UserServiceException("invalid email format");
+            throw new ValidationException("invalid email format");
         }
 
         return true;
     }
 
-    public static boolean verifyUsernameFormat(String username) throws UserServiceException {
+    public static boolean verifyUsernameFormat(String username) throws ValidationException {
         if (username == null || username.trim().isEmpty()) {
-            throw new UserServiceException("username is null or empty");
+            throw new ValidationException("username is null or empty");
         }
 
         String regex = "^[a-zA-Z0-9_]{3,20}$";
         if (!Pattern.matches(regex, username.trim())) {
-            throw new UserServiceException("invalid username format");
+            throw new ValidationException("invalid username format");
         }
         return true;
     }
 
-    public static boolean verifyPasswordFormat(String password) throws UserServiceException {
+    public static boolean verifyPasswordFormat(String password) throws ValidationException {
         if (password == null || password.trim().isEmpty()) {
-            throw new UserServiceException("password is null or empty");
+            throw new ValidationException("password is null or empty");
         }
 
         String regex = "^(?=\\S+$)(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$";
         if (!Pattern.matches(regex, password.trim())) {
-            throw new UserServiceException("invalid password format");
+            throw new ValidationException("invalid password format");
         }
 
         return true;

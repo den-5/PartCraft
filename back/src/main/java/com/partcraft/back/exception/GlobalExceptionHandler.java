@@ -15,9 +15,23 @@ public class GlobalExceptionHandler extends RuntimeException {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(UserServiceException.class)
-    public ResponseEntity<ErrorResponse> handleUserServiceError(UserServiceException exeption) {
-        log.error("Error in UserService class: ", exeption);
-        ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_ERROR", exeption.getMessage());
+    public ResponseEntity<ErrorResponse> handleUserServiceError(UserServiceException exception) {
+        log.error("Error in UserService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_ERROR", exception.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ErrorResponse> handleAuthError(UserServiceException exception) {
+        log.error("Error in AuthController class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("AUTH_CONTROLLER_ERROR", exception.getMessage());
+        return ResponseEntity.status(401).body(errorResponse);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationError(UserServiceException exception) {
+        log.error("Error in ValidateUserData class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("VALIDATE_USER_DATA_ERROR", exception.getMessage());
         return ResponseEntity.badRequest().body(errorResponse);
     }
 

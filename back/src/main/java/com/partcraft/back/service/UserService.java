@@ -105,7 +105,15 @@ public class UserService {
         else throw new UserServiceException("User with username " + username + " not found");
     }
 
-    
+    public UserDTO getUserByEmail(String email){
+        var user = userRepository.findUserByEmail(email).orElse(null);
+        if (user != null) return new UserDTO(user);
+        else throw new UserServiceException("User with email " + email + " not found");
+    }
+
+
+
+
     public boolean verifyEmailAvailability(String email) {
         return userRepository.findUserByEmail(email).orElse(null) == null;
     }
