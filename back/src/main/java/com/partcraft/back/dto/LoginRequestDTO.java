@@ -1,10 +1,8 @@
 package com.partcraft.back.dto;
+import lombok.Getter;
 
-import lombok.Data;
-
-@Data
-public class CreateUserDTO {
-    private String username;
+@Getter
+public class LoginRequestDTO {
     private String email;
     private String password;
 }
