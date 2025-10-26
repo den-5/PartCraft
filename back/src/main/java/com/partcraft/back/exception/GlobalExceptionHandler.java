@@ -22,16 +22,23 @@ public class GlobalExceptionHandler extends RuntimeException {
     }
 
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<ErrorResponse> handleAuthError(UserServiceException exception) {
+    public ResponseEntity<ErrorResponse> handleAuthError(AuthException exception) {
         log.error("Error in AuthController class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("AUTH_CONTROLLER_ERROR", exception.getMessage());
         return ResponseEntity.status(401).body(errorResponse);
     }
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ErrorResponse> handleValidationError(UserServiceException exception) {
+    public ResponseEntity<ErrorResponse> handleValidationError(ValidationException exception) {
         log.error("Error in ValidateUserData class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("VALIDATE_USER_DATA_ERROR", exception.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(RefreshTokenServiceException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenError(RefreshTokenServiceException exception) {
+        log.error("Error in RefreshTokenService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("REFRESH_TOKEN_SERVICE_ERROR", exception.getMessage());
         return ResponseEntity.badRequest().body(errorResponse);
     }
 

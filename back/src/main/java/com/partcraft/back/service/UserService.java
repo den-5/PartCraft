@@ -1,13 +1,11 @@
 package com.partcraft.back.service;
 
-import com.partcraft.back.dto.CreateUserDTO;
-import com.partcraft.back.dto.UpdateUserDTO;
-import com.partcraft.back.dto.UserDTO;
+import com.partcraft.back.dto.*;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
 import com.partcraft.back.repository.UserRepository;
+import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.util.VerifyUserDataFormat;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -16,14 +14,20 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder  passwordEncoder;
+    private final JwtUtils jwtUtils;
+    private final RefreshTokenService refreshTokenService;
 
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder  passwordEncoder) {
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder  passwordEncoder, JwtUtils jwtUtils,
+                       RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtils = jwtUtils;
+        this.refreshTokenService = refreshTokenService;
+
     }
 
-    public UserDTO createUser(CreateUserDTO createUserDTO) throws UserServiceException {
+    public AuthResponseDTO createUser(CreateUserDTO createUserDTO) throws UserServiceException {
             if(!VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)){
                 throw new UserServiceException("Provided user data is invalid");
             }
@@ -38,7 +42,9 @@ public class UserService {
                     createUserDTO.getEmail(),
                     passwordEncoder.encode(createUserDTO.getPassword()));
             userRepository.save(user);
-            return new UserDTO(user);
+            String refreshToken = refreshTokenService.createRefreshToken(user);
+            String accessToken = jwtUtils.generateToken(user.getUsername());
+            return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
     }
 
     public UserDTO updateUser(UpdateUserDTO updateUserDTO, Long id) throws UserServiceException {
@@ -105,10 +111,13 @@ public class UserService {
         else throw new UserServiceException("User with username " + username + " not found");
     }
 
-    public UserDTO getUserByEmail(String email){
+    public AuthResponseDTO getUserByEmail(String email){
         var user = userRepository.findUserByEmail(email).orElse(null);
-        if (user != null) return new UserDTO(user);
-        else throw new UserServiceException("User with email " + email + " not found");
+        if (user == null) throw new UserServiceException("User with email " + email + " not found");
+
+        String refreshToken = refreshTokenService.createRefreshToken(user);
+        String accessToken = jwtUtils.generateToken(user.getUsername());
+        return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
     }
 
 

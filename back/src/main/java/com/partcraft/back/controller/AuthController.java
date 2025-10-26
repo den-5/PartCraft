@@ -5,6 +5,7 @@ import com.partcraft.back.exception.AuthException;
 import com.partcraft.back.exception.UserServiceException;
 import com.partcraft.back.exception.ValidationException;
 import com.partcraft.back.security.JwtUtils;
+import com.partcraft.back.service.RefreshTokenService;
 import com.partcraft.back.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,68 +20,54 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final UserService userService;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserService userService){
+    public AuthController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserService userService,
+                          RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userService = userService;
+        this.refreshTokenService = refreshTokenService;
     }
 
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO request) throws Exception {
-        try{
-            var user = userService.getUserByEmail(request.getEmail());
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO request) throws AuthException {
+            var authResponseDTO = userService.getUserByEmail(request.getEmail());
+            try{
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(authResponseDTO.getUser().getUsername(),
+                            request.getPassword())
             );
-            var jwtTokens = new JwtTokensDTO();
-            jwtTokens.setAccessToken(jwtUtils.generateToken(authentication.getName()));
-            jwtTokens.setRefreshToken(jwtUtils.generateRefreshToken(authentication.getName()));
-            return ResponseEntity.ok(new AuthResponseDTO(user, jwtTokens));
-        } catch (Exception e) {
-            if (e instanceof UserServiceException) throw (UserServiceException) e;
-            else if (e instanceof ValidationException) throw (ValidationException) e;
-            else throw new AuthException("Invalid username or password");
-        }
-
+            } catch(Exception e) { throw new AuthException("Invalid email or password"); }
+            return ResponseEntity.ok(authResponseDTO);
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<AuthResponseDTO> signUp(@RequestBody CreateUserDTO request) throws Exception {
-        try {
-            var user = userService.createUser(request);
-            var jwtTokens = new JwtTokensDTO();
-            jwtTokens.setAccessToken(jwtUtils.generateToken(user.getUsername()));
-            jwtTokens.setRefreshToken(jwtUtils.generateRefreshToken(user.getUsername()));
-            return ResponseEntity.ok(new AuthResponseDTO(user, jwtTokens));
-        }catch (Exception e) {
-            if (e instanceof UserServiceException) throw (UserServiceException) e;
-            else if (e instanceof ValidationException) throw (ValidationException) e;
-            else throw new AuthException("Invalid username or password");
-        }
+    public ResponseEntity<AuthResponseDTO> signUp(@RequestBody CreateUserDTO request) {
+            var authResponseDTO = userService.createUser(request);
+            return ResponseEntity.ok(authResponseDTO);
     }
+
     @GetMapping("/refresh")
-    public ResponseEntity<String> refresh(@RequestHeader("Authorization") String authorizationHeader ) throws AuthException {
+    public ResponseEntity<JwtTokensDTO> refresh(@RequestHeader("Authorization") String authorizationHeader ) throws AuthException {
         try{
             String refreshToken = null;
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 refreshToken = authorizationHeader.substring(7);
             }
-            if (jwtUtils.validateRefreshToken(refreshToken)) {
+
+            if(refreshTokenService.isRefreshTokenValid(refreshToken)) {
                 String username = jwtUtils.getUsernameFromRefreshToken(refreshToken);
-                var userFromDb = userService.getUserByUsername(username);
-                if (username != null && userFromDb != null) {
-                    String token = jwtUtils.generateToken(userFromDb.getUsername());
-                    return ResponseEntity.ok(token);
-                }
+                refreshTokenService.deleteRefreshToken(refreshToken);
+
+                return ResponseEntity.ok().body(new JwtTokensDTO(jwtUtils.generateToken(username),
+                        refreshTokenService.createRefreshToken(username)));
             }
+
             throw new AuthException("Invalid refresh token");
         } catch (Exception e) {
-            if (e instanceof UserServiceException) throw (UserServiceException) e;
-            else if (e instanceof ValidationException) throw (ValidationException) e;
-            else if (e instanceof AuthException) throw (AuthException) e;
-            else throw new AuthException("Error validating refresh token");
+            throw new AuthException("Error while validating refresh token");
         }
     }
 

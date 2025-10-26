@@ -69,4 +69,6 @@ public class JwtUtils {
     public String getUsernameFromRefreshToken(String token) {
         return getUsernameFromToken(token);
     }
+
+    public long getRefreshTokenExpirationInMs() { return jwtRefreshTokenExpirationInMs; }
 }
