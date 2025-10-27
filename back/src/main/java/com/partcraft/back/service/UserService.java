@@ -48,11 +48,11 @@ public class UserService {
     }
 
     public UserDTO updateUser(UpdateUserDTO updateUserDTO, Long id) throws UserServiceException {
-        if(!verifyUsernameAvailability(updateUserDTO.getUsername())){
-            throw new UserServiceException("Provided username is already in use");
-        } else if(!VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())){
+        if(!VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())){
             throw new UserServiceException("Incorrect username format");
-        }
+        } else if(!verifyUsernameAvailability(updateUserDTO.getUsername())){
+             throw new UserServiceException("Provided username is already in use");
+         }
 
         var user = userRepository.findById(id).orElse(null);
         if(user == null){
@@ -65,11 +65,11 @@ public class UserService {
     }
 
     public UserDTO updateUserEmail(String newEmail, Long id) throws UserServiceException {
-        if(!verifyEmailAvailability(newEmail)){
-            throw new UserServiceException("Provided email address is already in use");
-        } else if(!VerifyUserDataFormat.verifyEmailFormat(newEmail)){
+       if(!VerifyUserDataFormat.verifyEmailFormat(newEmail)){
             throw new UserServiceException("Incorrect email format");
-        }
+        } else if(!verifyEmailAvailability(newEmail)){
+           throw new UserServiceException("Provided email address is already in use");
+       }
 
         var user = userRepository.findById(id).orElse(null);
         if(user == null){
