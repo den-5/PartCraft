@@ -3,12 +3,12 @@ package com.partcraft.back.unit;
 import com.partcraft.back.dto.*;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
-import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.service.RefreshTokenService;
 import com.partcraft.back.service.UserService;
 import com.partcraft.back.util.VerifyUserDataFormat;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -27,339 +26,301 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-
-    @Mock private UserRepository userRepository;
-    @Mock private BCryptPasswordEncoder passwordEncoder;
-    @Mock private RefreshTokenRepository refreshTokenRepository;
-    @Mock private RefreshTokenService refreshTokenService;
-    @Mock private JwtUtils jwtUtils;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private BCryptPasswordEncoder passwordEncoder;
+    @Mock
+    private RefreshTokenService refreshTokenService;
+    @Mock
+    private JwtUtils jwtUtils;
 
     @InjectMocks
     private UserService userService;
 
-    @Test
-    void getUserByUsername_shouldReturnUserDTO_whenUserExists(){
-        User user  = new User();
-        user.setUsername("test228");
-        user.setEmail("testuser@example.com");
-        when(userRepository.findUserByUsername("test228")).thenReturn(Optional.of(user));
+    @Nested
+    class CreateUserTests {
+        @Test
+        void createUser_shouldReturnAuthResponseDTO_whenUserDoesNotExist() {
+            var createUserDTO = createValidUserDTO();
+            try (MockedStatic<VerifyUserDataFormat> mockedVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockedVerify.when(() -> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
+                when(passwordEncoder.encode(createUserDTO.getPassword())).thenReturn("encryptedPassword123!");
+                when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+                when(jwtUtils.generateToken("john228")).thenReturn("token123");
+                when(refreshTokenService.createRefreshToken(any(User.class))).thenReturn("refreshToken123");
+                when(userRepository.findUserByEmail("testuser@example.com")).thenReturn(Optional.empty());
+                when(userRepository.findUserByUsername("john228")).thenReturn(Optional.empty());
+                AuthResponseDTO response = userService.createUser(createUserDTO);
+                assertThat(response).isNotNull();
+                assertThat(response.getUser().getUsername()).isEqualTo(createUserDTO.getUsername());
+                assertThat(response.getUser().getEmail()).isEqualTo(createUserDTO.getEmail());
+                assertThat(response.getTokens().getAccessToken()).isEqualTo("token123");
+                assertThat(response.getTokens().getRefreshToken()).isEqualTo("refreshToken123");
+            }
+        }
 
-        UserDTO result = userService.getUserByUsername("test228");
-        assertThat(result.getUsername()).isEqualTo("test228");
-        assertThat(result.getEmail()).isEqualTo("testuser@example.com");
+        @Test
+        void createUser_shouldThrowUserServiceException_whenUserDataInvalid() {
+            var createUserDTO = createValidUserDTO();
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(false);
+                assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Provided user data is invalid");
+            }
+        }
+
+        @Test
+        void createUser_shouldThrowUserServiceException_whenUserEmailIsAlreadyTaken() {
+            var createUserDTO = createValidUserDTO();
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
+                when(userRepository.findUserByEmail("testuser@example.com")).thenReturn(Optional.of(new User()));
+                assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Provided email address is already in use");
+            }
+        }
+
+        @Test
+        void createUser_shouldThrowUserServiceException_whenUserUsernameIsAlreadyTaken() {
+            var createUserDTO = createValidUserDTO();
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
+                when(userRepository.findUserByUsername("john228")).thenReturn(Optional.of(new User()));
+                assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Provided username is already in use");
+            }
+        }
     }
 
-    @Test
-    void getUserByUsername_shouldThrowUserServiceException_whenUserDoesNotExist(){
-        when(userRepository.findUserByUsername("nonexistent")).thenReturn(Optional.empty());
+    @Nested
+    class GetUserTests {
+        @Test
+        void getUserByUsername_shouldReturnUserDTO_whenUserExists() {
+            User user = mockExistingUser();
+            when(userRepository.findUserByUsername("john228")).thenReturn(Optional.of(user));
+            UserDTO result = userService.getUserByUsername("john228");
+            assertThat(result.getUsername()).isEqualTo("john228");
+            assertThat(result.getEmail()).isEqualTo("testuser@example.com");
+        }
 
-        assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(UserServiceException.class)
-                .hasMessageContaining("User with username nonexistent not found");
-    }
+        @Test
+        void getUserByUsername_shouldThrowUserServiceException_whenUserDoesNotExist() {
+            when(userRepository.findUserByUsername("nonexistent")).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(UserServiceException.class)
+                    .hasMessageContaining("User with username nonexistent not found");
+        }
 
-    @Test
-    void getUserByEmail_shouldReturnUserDTO_whenUserExists(){
-        User user  = new User();
-        user.setUsername("test228");
-        user.setEmail("testuser@example.com");
-        when(userRepository.findUserByUsername("testuser@example.com")).thenReturn(Optional.of(user));
-
-        UserDTO result = userService.getUserByUsername("testuser@example.com");
-        assertThat(result.getUsername()).isEqualTo("test228");
-        assertThat(result.getEmail()).isEqualTo("testuser@example.com");
-    }
-
-    @Test
-    void getUserByEmail_shouldThrowUserServiceException_whenUserDoesNotExist(){
-        when(userRepository.findUserByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(UserServiceException.class)
-                .hasMessageContaining("User with email nonexistent@example.com not found");
-    }
-
-    @Test
-    void createUser_shouldReturnAuthResponseDTO_whenUserDoesNotExists(){
-        var createUserDTO = new CreateUserDTO();
-        createUserDTO.setUsername("john228");
-        createUserDTO.setPassword("1234Password!!");
-        createUserDTO.setEmail("testuser@example.com");
-
-        try(MockedStatic<VerifyUserDataFormat> mockedVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockedVerify.when(()-> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
-
-            when(passwordEncoder.encode(createUserDTO.getPassword())).thenReturn("encryptedPassword123!");
-            when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        @Test
+        void getUserByEmail_shouldReturnAuthResponseDTO_whenUserExists() {
+            User user = mockExistingUser();
+            when(userRepository.findUserByEmail("testuser@example.com")).thenReturn(Optional.of(user));
             when(jwtUtils.generateToken("john228")).thenReturn("token123");
-            when(refreshTokenService.createRefreshToken(any(User.class))).thenReturn("refreshToken123");
+            when(refreshTokenService.createRefreshToken(user)).thenReturn("refreshToken123");
+            AuthResponseDTO result = userService.getUserByEmail("testuser@example.com");
+            assertThat(result.getUser().getUsername()).isEqualTo("john228");
+            assertThat(result.getUser().getEmail()).isEqualTo("testuser@example.com");
+            assertThat(result.getTokens().getAccessToken()).isEqualTo("token123");
+            assertThat(result.getTokens().getRefreshToken()).isEqualTo("refreshToken123");
+        }
 
-            when(userRepository.findUserByEmail("testuser@example.com")).thenReturn(Optional.empty());
-            when(userRepository.findUserByUsername("john228")).thenReturn(Optional.empty());
-
-
-            AuthResponseDTO response = userService.createUser(createUserDTO);
-
-            assertThat(response).isNotNull();
-            assertThat(response.getUser().getUsername()).isEqualTo(createUserDTO.getUsername());
-            assertThat(response.getUser().getEmail()).isEqualTo(createUserDTO.getEmail());
-            assertThat(response.getTokens().getAccessToken()).isEqualTo("token123");
-            assertThat(response.getTokens().getRefreshToken()).isEqualTo("refreshToken123");
+        @Test
+        void getUserByEmail_shouldThrowUserServiceException_whenUserDoesNotExist() {
+            when(userRepository.findUserByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(UserServiceException.class)
+                    .hasMessageContaining("User with email nonexistent@example.com not found");
         }
     }
 
-    @Test
-    void createUser_shouldThrowUserServiceException_whenUserDataInvalid(){
-        CreateUserDTO createUserDTO = new CreateUserDTO();
-        createUserDTO.setUsername("john228");
-        createUserDTO.setPassword("1234");
-        createUserDTO.setEmail("bademail");
+    @Nested
+    class UpdateUserTests {
+        // Username update scenarios
+        @Test
+        // Success: update username
+        void updateUser_shouldReturnUserDTO_whenUserExist() {
+            String username = "john228";
+            var updateUserDTO = new UpdateUserDTO("new_john228", null, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
+                when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.empty());
+                User user = mockExistingUser();
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
+                UserDTO result = userService.updateUserSensitiveData(updateUserDTO, username);
+                assertThat(result).isNotNull();
+                assertThat(result.getUsername()).isEqualTo(updateUserDTO.getUsername());
+                assertThat(result.getEmail()).isEqualTo(user.getEmail());
+            }
+        }
 
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(()-> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(false);
+        @Test
+            // Error: user not found for username update
+        void updateUser_shouldThrowUserServiceException_whenUserDoesNotExist() {
+            String username = "john228";
+            var updateUserDTO = new UpdateUserDTO("new_john228", null, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
+                when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.empty());
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("User with username " + username + " not found");
+            }
+        }
 
-            assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("Provided user data is invalid");
+        @Test
+            // Error: invalid username format
+        void updateUser_shouldThrowUserServiceException_whenUsernameFormatIsInvalid() {
+            String username = "john228";
+            var updateUserDTO = new UpdateUserDTO("wrongusername", null, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(false);
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Incorrect username format");
+            }
+        }
+
+        @Test
+            // Error: username already in use
+        void updateUser_shouldThrowUserServiceException_whenUsernameIsAlreadyInUse() {
+            String username = "john228";
+            var updateUserDTO = new UpdateUserDTO("new_john228", null, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
+                when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.of(new User()));
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Provided username is already in use");
+            }
+        }
+
+        // Email update scenarios
+        @Test
+        // Success: update email
+        void updateUser_shouldReturnUserDTO_whenEmailUpdated() {
+            String username = "john228";
+            String email = "newemail@gmail.com";
+            var updateUserDTO = new UpdateUserDTO(null, email, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
+                when(userRepository.findUserByEmail(email)).thenReturn(Optional.empty());
+                User user = mockExistingUser();
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
+                UserDTO result = userService.updateUserSensitiveData(updateUserDTO, username);
+                assertThat(result).isNotNull();
+                assertThat(result.getEmail()).isEqualTo(email);
+                assertThat(result.getUsername()).isEqualTo(user.getUsername());
+            }
+        }
+
+        @Test
+            // Error: invalid email format
+        void updateUser_shouldThrowUserServiceException_whenEmailFormatIsInvalid() {
+            String username = "john228";
+            String email = "badnewemail@gmail.com";
+            var updateUserDTO = new UpdateUserDTO(null, email, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(false);
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Incorrect email format");
+            }
+        }
+
+        @Test
+            // Error: email already taken
+        void updateUser_shouldThrowUserServiceException_whenEmailIsAlreadyTaken() {
+            String username = "john228";
+            String email = "badnewemail@gmail.com";
+            var updateUserDTO = new UpdateUserDTO(null, email, null);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
+                when(userRepository.findUserByEmail(email)).thenReturn(Optional.of(new User()));
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Provided email address is already in use");
+            }
+        }
+
+        @Test
+            // Error: user not found for email update
+        void updateUser_shouldThrowUserServiceException_whenUserDoesNotExist_forEmail() {
+            String username = "john228";
+            var updateUserDTOEmail = new UpdateUserDTO(null, "newemail@gmail.com", null);
+            when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOEmail, username)).isInstanceOf(UserServiceException.class)
+                    .hasMessageContaining("User with username " + username + " not found");
+        }
+
+        // Password update scenarios
+        @Test
+        // Success: update password
+        void updateUser_shouldReturnUserDTO_whenPasswordUpdated() {
+            String username = "john228";
+            String newPassword = "newPassword123!!";
+            var updateUserDTO = new UpdateUserDTO(null, null, newPassword);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(true);
+                User user = mockExistingUser();
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
+                when(passwordEncoder.encode(newPassword)).thenReturn("encryptedPassword");
+                UserDTO result = userService.updateUserSensitiveData(updateUserDTO, username);
+                assertThat(result).isNotNull();
+                assertThat(result.getUsername()).isEqualTo(user.getUsername());
+                assertThat(result.getEmail()).isEqualTo(user.getEmail());
+            }
+        }
+
+        @Test
+            // Error: invalid password format
+        void updateUser_shouldThrowUserServiceException_whenPasswordFormatIsInvalid() {
+            String username = "john228";
+            String newPassword = "newBadPassword123!!";
+            var updateUserDTO = new UpdateUserDTO(null, null, newPassword);
+            try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(false);
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                        .hasMessageContaining("Incorrect password format");
+            }
+        }
+
+        @Test
+            // Error: user not found for password update
+        void updateUser_shouldThrowUserServiceException_whenUserDoesNotExist_forPassword() {
+            String username = "john228";
+            var updateUserDTOPassword = new UpdateUserDTO(null, null, "newPassword123!!");
+            when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOPassword, username)).isInstanceOf(UserServiceException.class)
+                    .hasMessageContaining("User with username " + username + " not found");
         }
     }
 
+    @Nested
+    class DeleteUserTests {
+        @Test
+        void deleteUser_shouldReturnUserDTO_whenUserExist() {
+            String username = "john228";
+            User user = mockExistingUser();
+            when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
+            assertThat(userService.deleteUser(username)).isNotNull();
+        }
 
-    @Test
-    void createUser_shouldThrowUserServiceException_whenUserEmailIsAlreadyTaken(){
-        CreateUserDTO createUserDTO = new CreateUserDTO();
-        createUserDTO.setUsername("john228");
-        createUserDTO.setPassword("1234Password!!");
-        createUserDTO.setEmail("testuser@example.com");
-
-        try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(()-> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
-
-            when(userRepository.findUserByEmail("testuser@example.com")).thenReturn(Optional.of(new User()));
-
-            assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class).
-                    hasMessageContaining("Provided email address is already in use");
+        @Test
+        void deleteUser_shouldThrowUserServiceException_whenUserDoesNotExist() {
+            String username = "john228";
+            when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> userService.deleteUser(username)).isInstanceOf(UserServiceException.class)
+                    .hasMessageContaining("User with username " + username + " not found");
         }
     }
 
-    @Test
-    void createUser_shouldThrowUserServiceException_whenUserUsernameIsAlreadyTaken(){
-        CreateUserDTO createUserDTO = new CreateUserDTO();
-        createUserDTO.setUsername("john228");
-        createUserDTO.setPassword("1234Password!!");
-        createUserDTO.setEmail("testuser@example.com");
-
-        try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(()-> VerifyUserDataFormat.verifyCreateUserDTO(createUserDTO)).thenReturn(true);
-
-            when(userRepository.findUserByUsername("john228")).thenReturn(Optional.of(new User()));
-
-            assertThatThrownBy(() -> userService.createUser(createUserDTO)).isInstanceOf(UserServiceException.class).
-                    hasMessageContaining("Provided username is already in use");
-        }
+    private CreateUserDTO createValidUserDTO() {
+        var dto = new CreateUserDTO();
+        dto.setUsername("john228");
+        dto.setPassword("1234Password!!");
+        dto.setEmail("testuser@example.com");
+        return dto;
     }
 
-    @Test
-    void verifyEmailAvailability_shouldReturnTrue_whenUserDoesNotExist(){
-        String email = "testuser@example.com";
-        when(userRepository.findUserByEmail(email)).thenReturn(Optional.empty());
-        assertThat(userService.verifyEmailAvailability(email)).isTrue();
+    private User mockExistingUser() {
+        var user = new User();
+        user.setUsername("john228");
+        user.setEmail("testuser@example.com");
+        return user;
     }
-    @Test
-    void verifyEmailAvailability_shouldReturnFalse_whenUserExist(){
-        String email = "testuser@example.com";
-        when(userRepository.findUserByEmail(email)).thenReturn(Optional.of(new User()));
-        assertThat(userService.verifyEmailAvailability(email)).isFalse();
-    }
-    @Test
-    void verifyUsernameAvailability_shouldReturnTrue_whenUserDoesNotExist(){
-        String username = "john228";
-        when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-        assertThat(userService.verifyUsernameAvailability(username)).isTrue();
-    }
-    @Test
-    void verifyUsernameAvailability_shouldReturnFalse_whenUserExist(){
-        String username = "john228";
-        when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
-        assertThat(userService.verifyUsernameAvailability(username)).isFalse();
-    }
-
-    @Test
-    void deleteUser_shouldReturnUserDTO_whenUserExist(){
-        Long id = 1L;
-        when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
-        assertThat(userService.deleteUser(id)).isNotNull();
-    }
-
-
-    @Test
-    void deleteUser_shouldThrowUerServiceException_whenUserDoesNotExist(){
-        Long id = 1L;
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> userService.deleteUser(id)).isInstanceOf(UserServiceException.class)
-                .hasMessageContaining("User with id " + id + " not found");
-    }
-
-    @Test
-    void updateUser_shouldReturnUserDTO_whenUserExist(){
-        Long id = 1L;
-        var updateUserDTO = new UpdateUserDTO("new_john228");
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
-            when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.empty());
-            when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
-
-            UserDTO result = userService.updateUser(updateUserDTO, id);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getUsername()).isEqualTo(updateUserDTO.getUsername());
-        }
-    }
-
-    @Test
-    void updateUser_shouldThrowUserServiceException_whenUserDoesNotExist(){
-        Long id = 1L;
-        var updateUserDTO = new UpdateUserDTO("new_john228");
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
-            when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.empty());
-            when(userRepository.findById(id)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> userService.updateUser(updateUserDTO, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("User with id " + id + " not found");
-        }
-    }
-
-    @Test
-    void updateUser_shouldThrowUserServiceException_whenUsernameFormatIsInvalid(){
-        Long id = 1L;
-        var updateUserDTO = new UpdateUserDTO("wrongusername");
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(false);
-
-            assertThatThrownBy(() -> userService.updateUser(updateUserDTO, id)).isInstanceOf(UserServiceException.class).
-                    hasMessageContaining("Incorrect username format");
-        }
-    }
-
-    @Test
-    void updateUser_shouldThrowUserServiceException_whenUsernameIsAlreadyInUse(){
-        Long id = 1L;
-        var updateUserDTO = new UpdateUserDTO("new_john228");
-
-        try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(()-> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
-
-            when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.of(new User()));
-
-            assertThatThrownBy(() -> userService.updateUser(updateUserDTO, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("Provided username is already in use");
-        }
-    }
-
-    @Test
-    void updateUserEmail_shouldReturnUserDTO_whenUserExist(){
-        Long id = 1L;
-        String email = "newemail@gmail.com";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
-
-            when(userRepository.findUserByEmail(email)).thenReturn(Optional.empty());
-            when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
-
-            UserDTO result = userService.updateUserEmail(email, id);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getEmail()).isEqualTo(email);
-        }
-    }
-
-    @Test
-    void updateUserEmail_shouldThrowUserServiceException_whenUserDoesNotExist(){
-        Long id = 1L;
-        String email = "newemail@gmail.com";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
-
-            when(userRepository.findUserByEmail(email)).thenReturn(Optional.empty());
-            when(userRepository.findById(id)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> userService.updateUserEmail(email, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("User with id " + id + " not found");
-        }
-    }
-
-    @Test
-    void updateUserEmail_shouldThrowUserServiceException_whenEmailFormatIsInvalid(){
-        Long id = 1L;
-        String email = "badnewemail@gmail.com";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
-            mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(false);
-
-            assertThatThrownBy(() -> userService.updateUserEmail(email, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("Incorrect email format");
-        }
-    }
-
-    @Test
-    void updateUserEmail_shouldThrowUserServiceException_whenEmailIsAlreadyTaken(){
-        Long id = 1L;
-        String email = "badnewemail@gmail.com";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
-            mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
-            when(userRepository.findUserByEmail(email)).thenReturn(Optional.of(new User()));
-
-            assertThatThrownBy(() -> userService.updateUserEmail(email, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("Provided email address is already in use");
-        }
-    }
-
-    @Test
-    void updateUserPassword_shouldReturnUserDTO_whenUserExist(){
-        Long id = 1L;
-        String newPassword = "newPassword123!!";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(true);
-
-            when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
-
-            UserDTO result = userService.updateUserPassword(newPassword, id);
-
-            assertThat(result).isNotNull();
-        }
-    }
-
-    @Test
-    void updateUserPassword_shouldThrowUserServiceException_whenUserDoesNotExist(){
-        Long id = 1L;
-        String newPassword = "newPassword123!!";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(true);
-
-            when(userRepository.findById(id)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> userService.updateUserPassword(newPassword, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("User with id " + id + " not found");
-        }
-    }
-
-    @Test
-    void updateUserPassword_shouldThrowUserServiceException_whenPasswordFormatIsInvalid(){
-        Long id = 1L;
-        String newPassword = "newBadPassword123!!";
-
-        try(MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)){
-            mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(false);
-
-            assertThatThrownBy(() -> userService.updateUserPassword(newPassword, id)).isInstanceOf(UserServiceException.class)
-                    .hasMessageContaining("Incorrect password format");
-        }
-    }
-
 }
