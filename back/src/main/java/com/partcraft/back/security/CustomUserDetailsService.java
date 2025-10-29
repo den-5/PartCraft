@@ -1,4 +1,5 @@
 package com.partcraft.back.security;
+
 import com.partcraft.back.entity.User;
 import com.partcraft.back.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,17 +21,20 @@ public class CustomUserDetailsService implements UserDetailsService {
     // Loads user by username for authentication
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        try{
+        try {
             User user = userRepository.findUserByUsername(username).orElse(null);
+            if (user == null) {
+                throw new UsernameNotFoundException(username);
+            }
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getUsername())
                     .password(user.getPassword())
                     .authorities("USER")
                     .build();
-        } catch(Exception e){
-            if(e instanceof UsernameNotFoundException){
+        } catch (Exception e) {
+            if (e instanceof UsernameNotFoundException) {
                 throw new UsernameNotFoundException(e.getMessage());
-            } else{
+            } else {
                 throw new UnknownError(e.getMessage());
             }
         }

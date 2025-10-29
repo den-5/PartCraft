@@ -34,7 +34,7 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PutMapping("/delete")
+    @PostMapping("/delete")
     public ResponseEntity<UserDTO> deleteUser() {
         UserDTO deletedUser = userService.deleteUser(SecurityContextHolder.getContext().getAuthentication().getName());
         return ResponseEntity.ok(deletedUser);

@@ -3,6 +3,7 @@ package com.partcraft.back.service;
 import com.partcraft.back.dto.*;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.util.VerifyUserDataFormat;
@@ -16,15 +17,16 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
 
     public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, JwtUtils jwtUtils,
-                       RefreshTokenService refreshTokenService) {
+                       RefreshTokenService refreshTokenService, RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.refreshTokenService = refreshTokenService;
-
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     public AuthResponseDTO createUser(CreateUserDTO createUserDTO) throws UserServiceException {
@@ -64,6 +66,7 @@ public class UserService {
         if (user == null) throw new UserServiceException("User with username " + username + " not found");
         var userDTO = new UserDTO(user);
 
+        refreshTokenRepository.deleteAllByUser(user);
         userRepository.delete(user);
         return userDTO;
     }
