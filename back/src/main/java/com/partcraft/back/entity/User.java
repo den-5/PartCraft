@@ -1,15 +1,12 @@
 package com.partcraft.back.entity;
 
-import com.partcraft.back.dto.CreateUserDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.scheduling.annotation.Scheduled;
-
-import java.util.UUID;
 
 @Entity
+@Table(name = "`user`")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,7 +24,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    public User (String username, String email, String password) {
+    public User(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;

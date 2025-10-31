@@ -3,6 +3,7 @@ package com.partcraft.back.unit;
 import com.partcraft.back.dto.*;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.service.RefreshTokenService;
@@ -32,6 +33,8 @@ public class UserServiceTest {
     private BCryptPasswordEncoder passwordEncoder;
     @Mock
     private RefreshTokenService refreshTokenService;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
     @Mock
     private JwtUtils jwtUtils;
 

@@ -78,6 +78,9 @@ public class UserService {
     }
 
     public AuthResponseDTO getUserByEmail(String email) {
+        if (!VerifyUserDataFormat.verifyEmailFormat(email)) {
+            throw new UserServiceException("Invalid email format");
+        }
         var user = userRepository.findUserByEmail(email).orElse(null);
         if (user == null) throw new UserServiceException("User with email " + email + " not found");
 

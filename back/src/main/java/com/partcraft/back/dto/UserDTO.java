@@ -3,9 +3,11 @@ package com.partcraft.back.dto;
 import com.partcraft.back.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class UserDTO {
     private Long userId;
     private String username;

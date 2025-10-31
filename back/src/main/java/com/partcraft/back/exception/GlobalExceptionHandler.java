@@ -20,7 +20,11 @@ public class GlobalExceptionHandler extends RuntimeException {
     public ResponseEntity<ErrorResponse> handleUserServiceError(UserServiceException exception) {
         log.error("Error in UserService class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_ERROR", exception.getMessage());
-        return ResponseEntity.badRequest().body(errorResponse);
+        if (exception.getMessage().endsWith("not found")) {
+            return ResponseEntity.status(401).body(errorResponse);
+        } else {
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     @ExceptionHandler(AuthException.class)

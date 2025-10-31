@@ -48,11 +48,15 @@ public class PC {
     private PSU psu;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "colooler_id")
+    @JoinTable(
+            name = "pc_case_coolers",
+            joinColumns = @JoinColumn(name = "pc_id"),
+            inverseJoinColumns = @JoinColumn(name = "case_cooler_id")
+    )
     private List<CaseCooler> coolers;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "colooler_id")
+    @JoinColumn(name = "cpu_cooler_id")
     private CPUCooler cpuCooler;
 
     @ManyToOne(fetch = FetchType.LAZY)
