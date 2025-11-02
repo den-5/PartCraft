@@ -1,6 +1,6 @@
 package com.partcraft.back.unit;
 
-import com.partcraft.back.dto.CreateUserDTO;
+import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.exception.ValidationException;
 import com.partcraft.back.util.VerifyUserDataFormat;
 import org.junit.jupiter.api.Nested;

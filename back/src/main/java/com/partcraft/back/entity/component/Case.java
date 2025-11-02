@@ -17,4 +17,8 @@ public class Case {
     private String caseModel;
     private String caseColor;
     private String rgbSetup;
+    private String pictureUrl;
+
+    @OneToMany(mappedBy = "pcCase", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ComponentPlacement> componentPlacements = new java.util.ArrayList<>();
 }

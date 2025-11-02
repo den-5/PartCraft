@@ -1,4 +1,4 @@
-package com.partcraft.back.dto;
+package com.partcraft.back.dto.User;
 
 import com.partcraft.back.entity.User;
 import lombok.AllArgsConstructor;

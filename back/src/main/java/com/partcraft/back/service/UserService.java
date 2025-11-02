@@ -1,6 +1,9 @@
 package com.partcraft.back.service;
 
 import com.partcraft.back.dto.*;
+import com.partcraft.back.dto.User.CreateUserDTO;
+import com.partcraft.back.dto.User.UpdateUserDTO;
+import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;

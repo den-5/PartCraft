@@ -2,10 +2,14 @@ package com.partcraft.back.entity.component;
 
 import com.partcraft.back.entity.PC;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.awt.*;
 
 @Entity
+@Getter
+@Setter
 public class CaseCooler {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,6 +20,7 @@ public class CaseCooler {
     private PC pc;
 
     private String coolingType;
-    private Integer fanCount;
+    private Integer fanSize;
     private Color coolingColor;
+    private String pictureUrl;
 }

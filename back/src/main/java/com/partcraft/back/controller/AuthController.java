@@ -1,13 +1,11 @@
 package com.partcraft.back.controller;
 
 import com.partcraft.back.dto.*;
+import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.exception.AuthException;
-import com.partcraft.back.exception.UserServiceException;
-import com.partcraft.back.exception.ValidationException;
 import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.service.RefreshTokenService;
 import com.partcraft.back.service.UserService;
-import com.partcraft.back.util.VerifyUserDataFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

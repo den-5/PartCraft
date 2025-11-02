@@ -1,7 +1,6 @@
 package com.partcraft.back.util;
 
-import com.partcraft.back.dto.CreateUserDTO;
-import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.exception.ValidationException;
 
 import java.util.regex.Pattern;

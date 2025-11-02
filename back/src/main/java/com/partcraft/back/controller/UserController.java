@@ -1,7 +1,7 @@
 package com.partcraft.back.controller;
 
-import com.partcraft.back.dto.UpdateUserDTO;
-import com.partcraft.back.dto.UserDTO;
+import com.partcraft.back.dto.User.UpdateUserDTO;
+import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;

@@ -41,7 +41,7 @@ public class PC {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "storage_id")
-    private RAMKit storage;
+    private Storage storage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "psu_id")

@@ -1,5 +1,6 @@
 package com.partcraft.back.dto;
 
+import com.partcraft.back.dto.User.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

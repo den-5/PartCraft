@@ -1,7 +1,7 @@
 package com.partcraft.back.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.partcraft.back.dto.CreateUserDTO;
+import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.dto.LoginRequestDTO;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.repository.RefreshTokenRepository;
@@ -300,7 +300,7 @@ public class AuthControllerIntegrationTest {
 
             var tokensBeforeRefresh = refreshTokenRepository.findAll();
             assert tokensBeforeRefresh.size() == 1;
-            
+
             // Use refresh token to get new tokens
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
                             .header("Authorization", "Bearer " + oldRefreshToken))

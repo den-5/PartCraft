@@ -4,8 +4,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
 public class RAMKit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,4 +19,5 @@ public class RAMKit {
     private String ramType;
     private Integer ramSpeedMhz;
     private Integer ramSticksCount;
+    private String pictureUrl;
 }
