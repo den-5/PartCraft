@@ -1,5 +1,6 @@
 package com.partcraft.back.entity.component;
 
+import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,6 +19,8 @@ public class Case {
     private String caseColor;
     private String rgbSetup;
     private String pictureUrl;
+    @Embedded
+    private Size size;
 
     @OneToMany(mappedBy = "pcCase", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<ComponentPlacement> componentPlacements = new java.util.ArrayList<>();

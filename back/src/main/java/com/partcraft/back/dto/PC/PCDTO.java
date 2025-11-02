@@ -1,5 +1,6 @@
 package com.partcraft.back.dto.PC;
 
+import com.partcraft.back.dto.componentDTO.*;
 import lombok.*;
 
 import java.time.Instant;
@@ -15,15 +16,15 @@ public class PCDTO {
     private String name;
     private String description;
     private String purpose;
-    private Long cpuId;
-    private Long gpuId;
-    private Long ramKitId;
-    private Long storageId;
-    private Long psuId;
-    private List<Long> coolerIds;
-    private Long cpuCoolerId;
-    private Long motherboardId;
-    private Long pcCaseId;
+    private CPUDTO cpu;
+    private GPUDTO gpu;
+    private RAMKitDTO ramKit;
+    private StorageDTO storage;
+    private PSUDTO psu;
+    private List<CaseCoolerDTO> coolers;
+    private CPUCoolerDTO cpuCooler;
+    private MotherBoardDTO motherboard;
+    private CaseDTO pcCase;
     private Double benchmarkScore;
     private Double temperatureIdleC;
     private Double temperatureLoadC;

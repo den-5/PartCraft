@@ -1,5 +1,7 @@
 package com.partcraft.back.entity.component;
 
+import com.partcraft.back.entity.component.helper.Size;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,4 +21,6 @@ public class MotherBoard {
     private String chipset;
     private String socketType;
     private String pictureUrl;
+    @Embedded
+    private Size size;
 }

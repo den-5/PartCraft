@@ -1,9 +1,7 @@
 package com.partcraft.back.entity.component;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.partcraft.back.entity.component.helper.Size;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,4 +19,6 @@ public class CPUCooler {
     private Color coolingColor;
     private String PCCaseType;
     private String pictureUrl;
+    @Embedded
+    private Size size;
 }

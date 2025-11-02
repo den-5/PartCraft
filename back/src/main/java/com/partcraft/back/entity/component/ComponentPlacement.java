@@ -21,13 +21,9 @@ public class ComponentPlacement {
     @Column(nullable = false)
     private String componentType; // e.g., "CPU", "GPU", etc.
 
-    @Column(nullable = false)
-    private Long componentId; // ID of the component
-
     private Double x;
     private Double y;
     private Double z;
     private Double rotation;
     // Add more fields as needed for rendering
 }
-

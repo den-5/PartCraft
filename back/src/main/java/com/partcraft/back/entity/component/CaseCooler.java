@@ -1,6 +1,7 @@
 package com.partcraft.back.entity.component;
 
 import com.partcraft.back.entity.PC;
+import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,4 +24,6 @@ public class CaseCooler {
     private Integer fanSize;
     private Color coolingColor;
     private String pictureUrl;
+    @Embedded
+    private Size size;
 }

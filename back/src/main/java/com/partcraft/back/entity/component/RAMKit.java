@@ -1,6 +1,8 @@
 package com.partcraft.back.entity.component;
 
+import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -20,4 +22,6 @@ public class RAMKit {
     private Integer ramSpeedMhz;
     private Integer ramSticksCount;
     private String pictureUrl;
+    @Embedded
+    private Size size;
 }

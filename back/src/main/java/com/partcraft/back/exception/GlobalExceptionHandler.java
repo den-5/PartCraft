@@ -48,9 +48,17 @@ public class GlobalExceptionHandler extends RuntimeException {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
+    @ExceptionHandler(PCServiceException.class)
+    public ResponseEntity<ErrorResponse> handlePCServiceError(PCServiceException exception) {
+        log.error("Error in PCService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("PC_SERVICE_ERROR", exception.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         return ResponseEntity.internalServerError()
                 .body(Map.of("error", "Unexpected error: " + ex.getMessage()));
     }
+
 }
