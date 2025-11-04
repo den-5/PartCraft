@@ -1,6 +1,7 @@
 package com.partcraft.back.entity;
 
 import com.partcraft.back.entity.component.*;
+import com.partcraft.back.util.VisibilityState;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -78,7 +79,8 @@ public class PC {
     private Instant createdAt;
     private Instant updatedAt;
     private String location;
-    private String visibility;
+    @Enumerated(EnumType.STRING)
+    private VisibilityState visibility;
 
     @ElementCollection
     private List<String> tags;

@@ -7,13 +7,13 @@ import com.partcraft.back.entity.User;
 import com.partcraft.back.entity.component.CPU;
 import com.partcraft.back.exception.PCServiceException;
 import com.partcraft.back.repository.UserRepository;
-import com.partcraft.back.repository.component.PCRepository;
+import com.partcraft.back.repository.PCRepository;
 import com.partcraft.back.service.PCService;
 import com.partcraft.back.service.UserService;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
+import com.partcraft.back.service.helper.SetPCComponentsManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.Optional;
 
@@ -26,6 +26,7 @@ public class PCServiceTest {
     private UserRepository userRepository;
     private ComponentRepositoryManager components;
     private PCService pcService;
+    private SetPCComponentsManager setPCComponentsManager;
 
     @BeforeEach
     void setUp() {
@@ -33,68 +34,34 @@ public class PCServiceTest {
         userService = mock(UserService.class);
         userRepository = mock(UserRepository.class);
         components = mock(ComponentRepositoryManager.class);
-        pcService = new PCService(pcRepository, userService, userRepository, components);
-    }
-
-    @Test
-    void testCreatePC_successful() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
-        dto.setCpuId(1L);
-        User user = new User();
-        user.setId(10L);
-        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(user));
-        CPU cpu = new CPU();
-        cpu.setId(1L);
-        var cpuRepo = mock(com.partcraft.back.repository.component.CPURepository.class);
-        when(cpuRepo.findById(1L)).thenReturn(Optional.of(cpu));
-        when(components.getCpuRepository()).thenReturn(cpuRepo);
-        when(pcRepository.save(any(PC.class))).thenAnswer(inv -> inv.getArgument(0));
-        PCDTO result = pcService.createPC(dto, "user");
-        assertEquals("Test PC", result.getName());
-        assertNotNull(result.getCpu());
-        assertEquals(1L, result.getCpu().getId());
+        setPCComponentsManager = new SetPCComponentsManager(components);
+        pcService = new PCService(pcRepository, userService, userRepository, components, setPCComponentsManager);
     }
 
     @Test
     void testCreatePC_cpuNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setCpuId(2L);
-        User user = new User();
-        user.setId(10L);
-        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(user));
         var cpuRepo = mock(com.partcraft.back.repository.component.CPURepository.class);
-        when(cpuRepo.findById(2L)).thenReturn(Optional.empty());
         when(components.getCpuRepository()).thenReturn(cpuRepo);
+        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(new User()));
+        when(cpuRepo.findById(2L)).thenReturn(Optional.empty());
         assertThrows(PCServiceException.class, () -> pcService.createPC(dto, "user"));
     }
 
     @Test
     void testCreatePC_minimalFields() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Minimal PC");
-        dto.setDescription("desc");
-        dto.setPurpose("office");
-        User user = new User();
-        user.setId(10L);
-        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(user));
+        CreatePCDTO dto = createMockPCDTO();
+        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(new User()));
         when(pcRepository.save(any(PC.class))).thenAnswer(inv -> inv.getArgument(0));
         PCDTO result = pcService.createPC(dto, "user");
-        assertEquals("Minimal PC", result.getName());
+        assertEquals("Test PC", result.getName());
         assertNull(result.getCpu());
     }
 
     @Test
     void testCreatePC_allComponentsPresent() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Full PC");
-        dto.setDescription("desc");
-        dto.setPurpose("workstation");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setCpuId(1L);
         dto.setGpuId(2L);
         dto.setRamKitId(3L);
@@ -157,7 +124,7 @@ public class PCServiceTest {
         when(components.getCaseCoolerRepository()).thenReturn(caseCoolerRepo);
         when(pcRepository.save(any(PC.class))).thenAnswer(inv -> inv.getArgument(0));
         PCDTO result = pcService.createPC(dto, "user");
-        assertEquals("Full PC", result.getName());
+        assertEquals("Test PC", result.getName());
         assertNotNull(result.getCpu());
         assertNotNull(result.getGpu());
         assertNotNull(result.getRamKit());
@@ -188,10 +155,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_ramKitNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setRamKitId(3L);
         User user = new User();
         user.setId(10L);
@@ -204,10 +168,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_storageNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setStorageId(4L);
         User user = new User();
         user.setId(10L);
@@ -220,10 +181,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_psuNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setPsuId(5L);
         User user = new User();
         user.setId(10L);
@@ -236,10 +194,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_cpuCoolerNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setCpuCoolerId(6L);
         User user = new User();
         user.setId(10L);
@@ -252,10 +207,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_motherboardNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setMotherboardId(7L);
         User user = new User();
         user.setId(10L);
@@ -268,10 +220,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_caseNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setPcCaseId(8L);
         User user = new User();
         user.setId(10L);
@@ -284,10 +233,7 @@ public class PCServiceTest {
 
     @Test
     void testCreatePC_coolerNotFound_throwsException() {
-        CreatePCDTO dto = new CreatePCDTO();
-        dto.setName("Test PC");
-        dto.setDescription("desc");
-        dto.setPurpose("gaming");
+        CreatePCDTO dto = createMockPCDTO();
         dto.setCoolerIds(java.util.List.of(9L));
         User user = new User();
         user.setId(10L);
@@ -296,5 +242,13 @@ public class PCServiceTest {
         when(caseCoolerRepo.findById(9L)).thenReturn(Optional.empty());
         when(components.getCaseCoolerRepository()).thenReturn(caseCoolerRepo);
         assertThrows(PCServiceException.class, () -> pcService.createPC(dto, "user"));
+    }
+
+    private CreatePCDTO createMockPCDTO() {
+        CreatePCDTO dto = new CreatePCDTO();
+        dto.setName("Test PC");
+        dto.setDescription("desc");
+        dto.setPurpose("gaming");
+        return dto;
     }
 }

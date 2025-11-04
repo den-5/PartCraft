@@ -2,13 +2,14 @@ package com.partcraft.back.service;
 
 import com.partcraft.back.dto.PC.CreatePCDTO;
 import com.partcraft.back.dto.PC.PCDTO;
+import com.partcraft.back.dto.PC.UpdatePCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.entity.PC;
-import com.partcraft.back.entity.component.*;
 import com.partcraft.back.exception.PCServiceException;
-import com.partcraft.back.repository.component.PCRepository;
+import com.partcraft.back.repository.PCRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
+import com.partcraft.back.service.helper.SetPCComponentsManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +19,17 @@ public class PCService {
     public final UserService userService;
     public final UserRepository userRepository;
     public final ComponentRepositoryManager components;
+    public final SetPCComponentsManager setPCComponentsManager;
 
 
     public PCService(PCRepository pcRepository, UserService userService,
-                     UserRepository userRepository, ComponentRepositoryManager components) {
+                     UserRepository userRepository, ComponentRepositoryManager components,
+                     SetPCComponentsManager setPCComponentsManager) {
         this.pcRepository = pcRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.components = components;
+        this.setPCComponentsManager = setPCComponentsManager;
     }
 
     public PCDTO createPC(CreatePCDTO createPCDTO, String username) throws PCServiceException {
@@ -39,68 +43,65 @@ public class PCService {
         pc.setPurpose(createPCDTO.getPurpose());
         pc.setLocation(createPCDTO.getLocation());
         pc.setVisibility(createPCDTO.getVisibility());
-
-        if (createPCDTO.getCpuId() != null) {
-            var cpu = components.getCpuRepository().findById(createPCDTO.getCpuId())
-                    .orElseThrow(() -> new PCServiceException("CPU with id " + createPCDTO.getCpuId() + " not found"));
-            pc.setCpu(cpu);
-        }
-
-        if (createPCDTO.getGpuId() != null) {
-            var gpu = components.getGpuRepository().findById(createPCDTO.getGpuId())
-                    .orElseThrow(() -> new PCServiceException("GPU with id " + createPCDTO.getGpuId() + " not found"));
-            pc.setGpu(gpu);
-        }
-
-        if (createPCDTO.getRamKitId() != null) {
-            var ramKit = components.getRamKitRepository().findById(createPCDTO.getRamKitId())
-                    .orElseThrow(() -> new PCServiceException("RAM Kit with id " + createPCDTO.getRamKitId() + " not found"));
-            pc.setRamKit(ramKit);
-        }
-
-        if (createPCDTO.getStorageId() != null) {
-            var storage = components.getStorageRepository().findById(createPCDTO.getStorageId())
-                    .orElseThrow(() -> new PCServiceException("Storage with id " + createPCDTO.getStorageId() + " not found"));
-            pc.setStorage(storage);
-        }
-
-        if (createPCDTO.getPsuId() != null) {
-            var psu = components.getPsuRepository().findById(createPCDTO.getPsuId())
-                    .orElseThrow(() -> new PCServiceException("PSU with id " + createPCDTO.getPsuId() + " not found"));
-            pc.setPsu(psu);
-        }
-
-        if (createPCDTO.getCpuCoolerId() != null) {
-            var cpuCooler = components.getCpuCoolerRepository().findById(createPCDTO.getCpuCoolerId())
-                    .orElseThrow(() -> new PCServiceException("CPU Cooler with id " + createPCDTO.getCpuCoolerId() + " not found"));
-            pc.setCpuCooler(cpuCooler);
-        }
-
-        if (createPCDTO.getMotherboardId() != null) {
-            var motherboard = components.getMotherBoardRepository().findById(createPCDTO.getMotherboardId())
-                    .orElseThrow(() -> new PCServiceException("Motherboard with id " + createPCDTO.getMotherboardId() + " not found"));
-            pc.setMotherboard(motherboard);
-        }
-
-        if (createPCDTO.getPcCaseId() != null) {
-            var pcCase = components.getCaseRepository().findById(createPCDTO.getPcCaseId())
-                    .orElseThrow(() -> new PCServiceException("Case with id " + createPCDTO.getPcCaseId() + " not found"));
-            pc.setPcCase(pcCase);
-        }
-
-        if (createPCDTO.getCoolerIds() != null && !createPCDTO.getCoolerIds().isEmpty()) {
-            List<CaseCooler> caseCoolers = new ArrayList<>();
-            for (var coolerId : createPCDTO.getCoolerIds()) {
-                var caseCooler = components.getCaseCoolerRepository().findById(coolerId)
-                        .orElseThrow(() -> new PCServiceException("Cooler with id " + coolerId + " not found"));
-                caseCoolers.add(caseCooler);
-            }
-            pc.setCoolers(caseCoolers);
-        }
+        setPCComponentsManager.setAllComponents(pc, createPCDTO);
 
         var savedPc = pcRepository.save(pc);
         return mapToDTO(savedPc);
     }
+
+    public PCDTO updatePCFields(UpdatePCDTO updatePCDTO) {
+        var pc = pcRepository.findById(updatePCDTO.getId()).orElseThrow(
+                () -> new PCServiceException("PC with id " + updatePCDTO.getId() + " not found"));
+
+        pc.setName(updatePCDTO.getName());
+        pc.setDescription(updatePCDTO.getDescription());
+        pc.setPurpose(updatePCDTO.getPurpose());
+        pc.setVisibility(updatePCDTO.getVisibility());
+        pc.setTags(updatePCDTO.getTags());
+        pcRepository.save(pc);
+
+        return mapToDTO(pc);
+    }
+
+    public PCDTO updatePCComponents(UpdatePCDTO updatePCDTO) {
+        var pc = pcRepository.findById(updatePCDTO.getId()).orElseThrow(
+                () -> new PCServiceException("PC with id " + updatePCDTO.getId() + " not found"));
+
+        setPCComponentsManager.setAllComponents(pc, updatePCDTO);
+
+        pcRepository.save(pc);
+        return mapToDTO(pc);
+    }
+
+    public PCDTO getPCById(Long id) throws PCServiceException {
+        var pc = pcRepository.findById(id).orElseThrow(
+                () -> new PCServiceException("PC with id " + id + " not found"));
+
+        return mapToDTO(pc);
+    }
+
+    public List<PCDTO> getAllUserPCs(String username) throws PCServiceException {
+        var user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new PCServiceException("User with username " + username + " not found"));
+
+        List<PC> userPCs = pcRepository.findAllByOwnerId(user.getId()).orElseThrow(
+                () -> new PCServiceException("no PCs found by username: " + username)
+        );
+
+        return userPCs.stream().map(this::mapToDTO).toList();
+
+    }
+
+    public PCDTO deletePCbyId(Long Id) throws PCServiceException {
+        var pc = pcRepository.findById(Id).orElseThrow(
+                () -> new PCServiceException("PC with id " + Id + " not found")
+        );
+        var pcDTO = mapToDTO(pc);
+
+        pcRepository.delete(pc);
+        return pcDTO;
+    }
+
 
     private PCDTO mapToDTO(PC pc) {
         var dto = new PCDTO();

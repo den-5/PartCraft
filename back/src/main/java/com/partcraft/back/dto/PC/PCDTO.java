@@ -1,6 +1,7 @@
 package com.partcraft.back.dto.PC;
 
 import com.partcraft.back.dto.componentDTO.*;
+import com.partcraft.back.util.VisibilityState;
 import lombok.*;
 
 import java.time.Instant;
@@ -34,6 +35,6 @@ public class PCDTO {
     private Instant createdAt;
     private Instant updatedAt;
     private String location;
-    private String visibility;
+    private VisibilityState visibility;
     private List<String> tags;
 }

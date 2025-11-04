@@ -8,9 +8,10 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class CreatePCDTO implements CreateOrUpdatePCDTO {
+@AllArgsConstructor
+public class UpdatePCDTO implements CreateOrUpdatePCDTO {
+    private Long id;
     private String name;
     private String description;
     private String purpose;
@@ -23,6 +24,6 @@ public class CreatePCDTO implements CreateOrUpdatePCDTO {
     private Long cpuCoolerId;
     private Long motherboardId;
     private Long pcCaseId;
-    private String location;
     private VisibilityState visibility;
+    private List<String> tags;
 }
