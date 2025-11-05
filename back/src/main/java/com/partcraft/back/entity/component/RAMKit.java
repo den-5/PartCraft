@@ -22,6 +22,7 @@ public class RAMKit {
     private Integer ramSpeedMhz;
     private Integer ramSticksCount;
     private String pictureUrl;
+    private Integer powerDraw;
     @Embedded
     private Size size;
 }

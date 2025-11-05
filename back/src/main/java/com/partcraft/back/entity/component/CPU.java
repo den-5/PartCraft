@@ -26,4 +26,5 @@ public class CPU {
     private String pictureUrl;
     @Embedded
     private Size size;
+    private Integer powerDraw;
 }

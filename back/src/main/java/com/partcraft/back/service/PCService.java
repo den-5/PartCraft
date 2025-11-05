@@ -10,10 +10,11 @@ import com.partcraft.back.repository.PCRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
 import com.partcraft.back.service.helper.SetPCComponentsManager;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class PCService {
     public final PCRepository pcRepository;
     public final UserService userService;
@@ -49,9 +50,9 @@ public class PCService {
         return mapToDTO(savedPc);
     }
 
-    public PCDTO updatePCFields(UpdatePCDTO updatePCDTO) {
-        var pc = pcRepository.findById(updatePCDTO.getId()).orElseThrow(
-                () -> new PCServiceException("PC with id " + updatePCDTO.getId() + " not found"));
+    public PCDTO updatePCFields(Long id, UpdatePCDTO updatePCDTO) {
+        var pc = pcRepository.findById(id).orElseThrow(
+                () -> new PCServiceException("PC with id " + id + " not found"));
 
         pc.setName(updatePCDTO.getName());
         pc.setDescription(updatePCDTO.getDescription());
@@ -63,9 +64,9 @@ public class PCService {
         return mapToDTO(pc);
     }
 
-    public PCDTO updatePCComponents(UpdatePCDTO updatePCDTO) {
-        var pc = pcRepository.findById(updatePCDTO.getId()).orElseThrow(
-                () -> new PCServiceException("PC with id " + updatePCDTO.getId() + " not found"));
+    public PCDTO updatePCComponents(Long id, UpdatePCDTO updatePCDTO) {
+        var pc = pcRepository.findById(id).orElseThrow(
+                () -> new PCServiceException("PC with id " + id + " not found"));
 
         setPCComponentsManager.setAllComponents(pc, updatePCDTO);
 
@@ -92,14 +93,11 @@ public class PCService {
 
     }
 
-    public PCDTO deletePCbyId(Long Id) throws PCServiceException {
+    public void deletePCbyId(Long Id) throws PCServiceException {
         var pc = pcRepository.findById(Id).orElseThrow(
                 () -> new PCServiceException("PC with id " + Id + " not found")
         );
-        var pcDTO = mapToDTO(pc);
-
         pcRepository.delete(pc);
-        return pcDTO;
     }
 
 

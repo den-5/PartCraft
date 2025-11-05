@@ -23,4 +23,5 @@ public class MotherBoard {
     private String pictureUrl;
     @Embedded
     private Size size;
+    private Integer powerDraw;
 }

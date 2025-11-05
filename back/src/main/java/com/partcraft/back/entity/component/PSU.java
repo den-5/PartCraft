@@ -22,4 +22,5 @@ public class PSU {
     private String pictureUrl;
     @Embedded
     private Size size;
+    private Integer powerDraw;
 }

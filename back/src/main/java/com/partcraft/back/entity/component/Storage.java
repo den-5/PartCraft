@@ -21,6 +21,7 @@ public class Storage {
     private String storageType;
     private Integer storageCount;
     private String pictureUrl;
+    private Integer powerDraw;
     @Embedded
     private Size size;
 }
