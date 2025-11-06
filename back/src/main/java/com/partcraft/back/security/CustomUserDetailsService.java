@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getUsername())
                     .password(user.getPassword())
-                    .authorities(String.valueOf(user.getRole()))
+                    .roles(String.valueOf(user.getRole()))
                     .build();
         } catch (Exception e) {
             if (e instanceof UsernameNotFoundException) {
