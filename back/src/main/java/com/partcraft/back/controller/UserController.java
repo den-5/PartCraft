@@ -34,20 +34,9 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PostMapping("/delete")
+    @DeleteMapping("/")
     public ResponseEntity<UserDTO> deleteUser() {
         UserDTO deletedUser = userService.deleteUser(SecurityContextHolder.getContext().getAuthentication().getName());
         return ResponseEntity.ok(deletedUser);
     }
-
-    @GetMapping("/email-availability/{email}")
-    public ResponseEntity<Boolean> verifyEmailAvailability(@PathVariable String email) {
-        return ResponseEntity.ok(userService.verifyEmailAvailability(email));
-    }
-
-    @GetMapping("/username-availability/{username}")
-    public ResponseEntity<Boolean> verifyUsernameAvailability(@PathVariable String username) {
-        return ResponseEntity.ok(userService.verifyUsernameAvailability(username));
-    }
-
 }

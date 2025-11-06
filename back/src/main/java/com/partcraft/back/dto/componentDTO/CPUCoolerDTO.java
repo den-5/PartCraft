@@ -17,6 +17,7 @@ public class CPUCoolerDTO {
     private String pcCaseType;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public CPUCoolerDTO(CPUCooler cpuCooler) {
         this.id = cpuCooler.getId();
@@ -30,5 +31,6 @@ public class CPUCoolerDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = cpuCooler.getPowerDraw();
     }
 }

@@ -19,6 +19,7 @@ public class CPUDTO {
     private Double cpuBoostClockGhz;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public CPUDTO(CPU cpu) {
         this.id = cpu.getId();
@@ -34,5 +35,6 @@ public class CPUDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = cpu.getPowerDraw();
     }
 }

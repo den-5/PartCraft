@@ -15,6 +15,7 @@ public class PSUDTO {
     private Integer psuWattage;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public PSUDTO(PSU psu) {
         this.id = psu.getId();
@@ -26,5 +27,6 @@ public class PSUDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = psu.getPowerDraw();
     }
 }

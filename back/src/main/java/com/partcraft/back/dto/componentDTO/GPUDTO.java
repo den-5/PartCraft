@@ -16,6 +16,7 @@ public class GPUDTO {
     private Integer gpuMemoryGb;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public GPUDTO(GPU gpu) {
         this.id = gpu.getId();
@@ -28,5 +29,6 @@ public class GPUDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = gpu.getPowerDraw();
     }
 }

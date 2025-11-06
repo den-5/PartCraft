@@ -1,5 +1,6 @@
 package com.partcraft.back.entity.component;
 
+import com.partcraft.back.dto.componentDTO.CPUDTO;
 import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,11 +8,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Embedded;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
 public class CPU {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,4 +30,18 @@ public class CPU {
     @Embedded
     private Size size;
     private Integer powerDraw;
+
+    public CPU(CPUDTO dto) {
+        this.cpuBrand = dto.getCpuBrand();
+        this.cpuModel = dto.getCpuModel();
+        this.cpuCores = dto.getCpuCores();
+        this.cpuThreads = dto.getCpuThreads();
+        this.cpuBaseClockGhz = dto.getCpuBaseClockGhz();
+        this.cpuBoostClockGhz = dto.getCpuBoostClockGhz();
+        this.pictureUrl = dto.getPictureUrl();
+        if (dto.getSize() != null) {
+            this.size = new Size(dto.getSize().getWidth(), dto.getSize().getLength(), dto.getSize().getHeight());
+        }
+        this.powerDraw = dto.getPowerDraw();
+    }
 }

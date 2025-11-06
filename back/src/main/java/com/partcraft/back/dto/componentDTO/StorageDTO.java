@@ -16,6 +16,7 @@ public class StorageDTO {
     private Integer storageCount;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public StorageDTO(Storage storage) {
         this.id = storage.getId();
@@ -28,5 +29,6 @@ public class StorageDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = storage.getPowerDraw();
     }
 }

@@ -17,6 +17,7 @@ public class MotherBoardDTO {
     private String socketType;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public MotherBoardDTO(MotherBoard mb) {
         this.id = mb.getId();
@@ -30,5 +31,6 @@ public class MotherBoardDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = mb.getPowerDraw();
     }
 }

@@ -20,7 +20,7 @@ public class PCController {
         this.pcService = pcService;
     }
 
-    @PostMapping("/create")
+    @PostMapping("/")
     public ResponseEntity<PCDTO> createPC(@RequestBody CreatePCDTO createPCDTO) {
         var pcDTO = pcService.createPC(createPCDTO, SecurityContextHolder.getContext().getAuthentication().getName());
         return ResponseEntity.ok(pcDTO);
@@ -48,7 +48,7 @@ public class PCController {
         return ResponseEntity.ok(pcService.updatePCComponents(id, updateDTO));
     }
 
-    @PostMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePCById(@PathVariable Long id) {
         pcService.deletePCbyId(id);
         return ResponseEntity.ok().build();

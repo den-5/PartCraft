@@ -9,6 +9,7 @@ import com.partcraft.back.exception.UserServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
+import com.partcraft.back.util.UserRole;
 import com.partcraft.back.util.VerifyUserDataFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -92,6 +93,17 @@ public class UserService {
         return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
     }
 
+    public UserDTO updateUserRole(String email, UserRole role) {
+        if (!VerifyUserDataFormat.verifyEmailFormat(email)) {
+            throw new UserServiceException("Invalid email format");
+        }
+        var user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) throw new UserServiceException("User with email " + email + " not found");
+
+        user.setRole(role);
+        userRepository.save(user);
+        return new UserDTO(user);
+    }
 
     public boolean verifyEmailAvailability(String email) {
         return userRepository.findUserByEmail(email).orElse(null) == null;

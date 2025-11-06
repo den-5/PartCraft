@@ -17,6 +17,7 @@ public class RAMKitDTO {
     private Integer ramSticksCount;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
 
     public RAMKitDTO(RAMKit ramKit) {
         this.id = ramKit.getId();
@@ -30,5 +31,6 @@ public class RAMKitDTO {
         } else {
             this.size = null;
         }
+        this.powerDraw = ramKit.getPowerDraw();
     }
 }
