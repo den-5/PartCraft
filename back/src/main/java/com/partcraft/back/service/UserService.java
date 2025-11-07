@@ -6,6 +6,7 @@ import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.exception.UserServiceNotFoundException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -53,32 +54,19 @@ public class UserService {
         return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
     }
 
-    public UserDTO updateUserSensitiveData(UpdateUserDTO updateUserDTO, String username) throws UserServiceException {
-        if (updateUserDTO.getEmail() != null) {
-            return updateUserEmail(updateUserDTO.getEmail(), username);
-        } else if (updateUserDTO.getPassword() != null) {
-            return updateUserPassword(updateUserDTO.getPassword(), username);
-        } else if (updateUserDTO.getUsername() != null) {
-            return updateUserUsername(updateUserDTO.getUsername(), username);
-        }
 
-        throw new UserServiceException("Provided user data is invalid");
-    }
-
-    public UserDTO deleteUser(String username) throws UserServiceException {
+    public void deleteUser(String username) throws UserServiceException {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) throw new UserServiceException("User with username " + username + " not found");
-        var userDTO = new UserDTO(user);
+        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
 
         refreshTokenRepository.deleteAllByUser(user);
         userRepository.delete(user);
-        return userDTO;
     }
 
     public UserDTO getUserByUsername(String username) {
         var user = userRepository.findUserByUsername(username).orElse(null);
         if (user != null) return new UserDTO(user);
-        else throw new UserServiceException("User with username " + username + " not found");
+        else throw new UserServiceNotFoundException("User with username " + username + " not found");
     }
 
     public AuthResponseDTO getUserByEmail(String email) {
@@ -86,19 +74,16 @@ public class UserService {
             throw new UserServiceException("Invalid email format");
         }
         var user = userRepository.findUserByEmail(email).orElse(null);
-        if (user == null) throw new UserServiceException("User with email " + email + " not found");
+        if (user == null) throw new UserServiceNotFoundException("User with email " + email + " not found");
 
         String refreshToken = refreshTokenService.createRefreshToken(user);
         String accessToken = jwtUtils.generateToken(user.getUsername());
         return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
     }
 
-    public UserDTO updateUserRole(String email, UserRole role) {
-        if (!VerifyUserDataFormat.verifyEmailFormat(email)) {
-            throw new UserServiceException("Invalid email format");
-        }
-        var user = userRepository.findUserByEmail(email).orElse(null);
-        if (user == null) throw new UserServiceException("User with email " + email + " not found");
+    public UserDTO updateUserRole(String username, UserRole role) {
+        var user = userRepository.findUserByUsername(username).orElse(null);
+        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
 
         user.setRole(role);
         userRepository.save(user);
@@ -113,52 +98,48 @@ public class UserService {
         return userRepository.findUserByUsername(username).orElse(null) == null;
     }
 
-
-    private UserDTO updateUserUsername(String newUsername, String username) {
-        if (!VerifyUserDataFormat.verifyUsernameFormat(newUsername)) {
-            throw new UserServiceException("Incorrect username format");
-        } else if (!verifyUsernameAvailability(newUsername)) {
-            throw new UserServiceException("Provided username is already in use");
-        }
-
+    public UserRole getUserRole(String username) {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) {
-            throw new UserServiceException("User with username " + username + " not found");
-        }
-
-        user.setUsername(newUsername);
-        userRepository.save(user);
-        return new UserDTO(user);
+        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+        return user.getRole();
     }
 
-    private UserDTO updateUserEmail(String newEmail, String username) throws UserServiceException {
-        if (!VerifyUserDataFormat.verifyEmailFormat(newEmail)) {
-            throw new UserServiceException("Incorrect email format");
-        } else if (!verifyEmailAvailability(newEmail)) {
-            throw new UserServiceException("Provided email address is already in use");
-        }
-
+    public UserDTO updateUserSensitiveData(UpdateUserDTO updateUserDTO, String username) throws UserServiceException {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) {
-            throw new UserServiceException("User with username " + username + " not found");
+        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+
+        boolean updated = false;
+
+        if (updateUserDTO.getEmail() != null && !updateUserDTO.getEmail().isBlank()) {
+            if (!VerifyUserDataFormat.verifyEmailFormat(updateUserDTO.getEmail())) {
+                throw new UserServiceException("Incorrect email format");
+            } else if (!verifyEmailAvailability(updateUserDTO.getEmail())) {
+                throw new UserServiceException("Provided email address is already in use");
+            }
+            user.setEmail(updateUserDTO.getEmail());
+            updated = true;
+        }
+        if (updateUserDTO.getUsername() != null && !updateUserDTO.getUsername().isBlank()) {
+            if (!VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())) {
+                throw new UserServiceException("Incorrect username format");
+            } else if (!verifyUsernameAvailability(updateUserDTO.getUsername())) {
+                throw new UserServiceException("Provided username is already in use");
+            }
+            user.setUsername(updateUserDTO.getUsername());
+            updated = true;
+        }
+        if (updateUserDTO.getPassword() != null && !updateUserDTO.getPassword().isBlank()) {
+            if (!VerifyUserDataFormat.verifyPasswordFormat(updateUserDTO.getPassword())) {
+                throw new UserServiceException("Incorrect password format");
+            }
+            user.setPassword(passwordEncoder.encode(updateUserDTO.getPassword()));
+            updated = true;
         }
 
-        user.setEmail(newEmail);
-        userRepository.save(user);
-        return new UserDTO(user);
-    }
-
-    private UserDTO updateUserPassword(String newPassword, String username) throws UserServiceException {
-        if (!VerifyUserDataFormat.verifyPasswordFormat(newPassword)) {
-            throw new UserServiceException("Incorrect password format");
+        if (!updated) {
+            throw new UserServiceException("Provided user data is invalid");
         }
 
-        var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) {
-            throw new UserServiceException("User with username " + username + " not found");
-        }
-
-        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         return new UserDTO(user);
     }

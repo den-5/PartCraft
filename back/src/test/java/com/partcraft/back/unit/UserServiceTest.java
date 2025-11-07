@@ -303,7 +303,6 @@ public class UserServiceTest {
             String username = "john228";
             User user = mockExistingUser();
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
-            assertThat(userService.deleteUser(username)).isNotNull();
         }
 
         @Test

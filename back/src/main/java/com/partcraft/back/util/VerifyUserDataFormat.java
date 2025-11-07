@@ -21,8 +21,8 @@ public class VerifyUserDataFormat {
         if (email == null || email.trim().isEmpty()) {
             throw new ValidationException("email is null or empty");
         }
-
-        String regex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]{2,}$";
+        
+        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         if (!Pattern.matches(regex, email.trim())) {
             throw new ValidationException("invalid email format");
         }
@@ -35,7 +35,7 @@ public class VerifyUserDataFormat {
             throw new ValidationException("username is null or empty");
         }
 
-        String regex = "^[a-zA-Z0-9_]{3,20}$";
+        String regex = "^[A-Za-z0-9]{5,}$";
         if (!Pattern.matches(regex, username.trim())) {
             throw new ValidationException("invalid username format");
         }

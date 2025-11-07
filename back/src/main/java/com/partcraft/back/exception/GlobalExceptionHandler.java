@@ -21,7 +21,7 @@ public class GlobalExceptionHandler extends RuntimeException {
         log.error("Error in UserService class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_ERROR", exception.getMessage());
         if (exception.getMessage().endsWith("not found")) {
-            return ResponseEntity.status(401).body(errorResponse);
+            return ResponseEntity.status(400).body(errorResponse);
         } else {
             return ResponseEntity.badRequest().body(errorResponse);
         }
@@ -53,6 +53,13 @@ public class GlobalExceptionHandler extends RuntimeException {
         log.error("Error in PCService class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("PC_SERVICE_ERROR", exception.getMessage());
         return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(UserServiceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserServiceNotFound(UserServiceNotFoundException exception) {
+        log.error("Error in UserServiceNotFound class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_NOT_FOUND", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
