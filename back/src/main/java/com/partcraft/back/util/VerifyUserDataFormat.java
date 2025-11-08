@@ -21,8 +21,9 @@ public class VerifyUserDataFormat {
         if (email == null || email.trim().isEmpty()) {
             throw new ValidationException("email is null or empty");
         }
-        
-        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+        // Requires: local-part@domain.tld (TLD must be at least 2 characters)
+        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         if (!Pattern.matches(regex, email.trim())) {
             throw new ValidationException("invalid email format");
         }
@@ -35,7 +36,7 @@ public class VerifyUserDataFormat {
             throw new ValidationException("username is null or empty");
         }
 
-        String regex = "^[A-Za-z0-9]{5,}$";
+        String regex = "^[A-Za-z0-9]{5,20}$";
         if (!Pattern.matches(regex, username.trim())) {
             throw new ValidationException("invalid username format");
         }

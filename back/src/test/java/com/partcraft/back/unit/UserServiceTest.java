@@ -6,6 +6,7 @@ import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.exception.UserServiceException;
+import com.partcraft.back.exception.UserServiceNotFoundException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -113,7 +114,7 @@ public class UserServiceTest {
         @Test
         void getUserByUsername_shouldThrowUserServiceException_whenUserDoesNotExist() {
             when(userRepository.findUserByUsername("nonexistent")).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(UserServiceException.class)
+            assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(UserServiceNotFoundException.class)
                     .hasMessageContaining("User with username nonexistent not found");
         }
 
@@ -133,7 +134,7 @@ public class UserServiceTest {
         @Test
         void getUserByEmail_shouldThrowUserServiceException_whenUserDoesNotExist() {
             when(userRepository.findUserByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(UserServiceException.class)
+            assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(UserServiceNotFoundException.class)
                     .hasMessageContaining("User with email nonexistent@example.com not found");
         }
     }
@@ -165,9 +166,8 @@ public class UserServiceTest {
             var updateUserDTO = new UpdateUserDTO("new_john228", null, null);
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
                 mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
-                when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.empty());
                 when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceNotFoundException.class)
                         .hasMessageContaining("User with username " + username + " not found");
             }
         }
@@ -178,6 +178,7 @@ public class UserServiceTest {
             String username = "john228";
             var updateUserDTO = new UpdateUserDTO("wrongusername", null, null);
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
                 mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(false);
                 assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
                         .hasMessageContaining("Incorrect username format");
@@ -189,9 +190,11 @@ public class UserServiceTest {
         void updateUser_shouldThrowUserServiceException_whenUsernameIsAlreadyInUse() {
             String username = "john228";
             var updateUserDTO = new UpdateUserDTO("new_john228", null, null);
+            when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.of(new User()));
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
                 mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
                 when(userRepository.findUserByUsername(updateUserDTO.getUsername())).thenReturn(Optional.of(new User()));
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
                 assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
                         .hasMessageContaining("Provided username is already in use");
             }
@@ -223,6 +226,7 @@ public class UserServiceTest {
             String email = "badnewemail@gmail.com";
             var updateUserDTO = new UpdateUserDTO(null, email, null);
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
                 mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(false);
                 assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
                         .hasMessageContaining("Incorrect email format");
@@ -238,18 +242,18 @@ public class UserServiceTest {
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
                 mockVerify.when(() -> VerifyUserDataFormat.verifyEmailFormat(email)).thenReturn(true);
                 when(userRepository.findUserByEmail(email)).thenReturn(Optional.of(new User()));
+                when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
                 assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
                         .hasMessageContaining("Provided email address is already in use");
             }
         }
 
         @Test
-            // Error: user not found for email update
         void updateUser_shouldThrowUserServiceException_whenUserDoesNotExist_forEmail() {
             String username = "john228";
             var updateUserDTOEmail = new UpdateUserDTO(null, "newemail@gmail.com", null);
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOEmail, username)).isInstanceOf(UserServiceException.class)
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOEmail, username)).isInstanceOf(UserServiceNotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
 
@@ -273,11 +277,11 @@ public class UserServiceTest {
         }
 
         @Test
-            // Error: invalid password format
         void updateUser_shouldThrowUserServiceException_whenPasswordFormatIsInvalid() {
             String username = "john228";
             String newPassword = "newBadPassword123!!";
             var updateUserDTO = new UpdateUserDTO(null, null, newPassword);
+            when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(new User()));
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
                 mockVerify.when(() -> VerifyUserDataFormat.verifyPasswordFormat(newPassword)).thenReturn(false);
                 assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceException.class)
@@ -291,7 +295,7 @@ public class UserServiceTest {
             String username = "john228";
             var updateUserDTOPassword = new UpdateUserDTO(null, null, "newPassword123!!");
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOPassword, username)).isInstanceOf(UserServiceException.class)
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOPassword, username)).isInstanceOf(UserServiceNotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
     }
@@ -303,13 +307,14 @@ public class UserServiceTest {
             String username = "john228";
             User user = mockExistingUser();
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.of(user));
+            userService.deleteUser(username);
         }
 
         @Test
         void deleteUser_shouldThrowUserServiceException_whenUserDoesNotExist() {
             String username = "john228";
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.deleteUser(username)).isInstanceOf(UserServiceException.class)
+            assertThatThrownBy(() -> userService.deleteUser(username)).isInstanceOf(UserServiceNotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
     }

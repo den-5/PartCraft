@@ -200,8 +200,8 @@ public class AuthControllerIntegrationTest {
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("USER_SERVICE_ERROR"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("USER_SERVICE_NOT_FOUND"))
                     .andExpect(jsonPath("$.message").exists());
         }
 
