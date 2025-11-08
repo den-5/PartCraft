@@ -4,6 +4,7 @@ import com.partcraft.back.util.ErrorResponse;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,6 +27,18 @@ public class GlobalExceptionHandler extends RuntimeException {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @ExceptionHandler(ComponentServiceException.class)
+    public ResponseEntity<ErrorResponse> handleComponentServiceError(ComponentServiceException exception) {
+        log.error("Error in UserService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("COMPONENT_SERVICE_ERROR", exception.getMessage());
+        if (exception.getMessage().endsWith("not found")) {
+            return ResponseEntity.status(404).body(errorResponse);
+        } else {
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ErrorResponse> handleAuthError(AuthException exception) {
@@ -60,6 +73,12 @@ public class GlobalExceptionHandler extends RuntimeException {
         log.error("Error in UserServiceNotFound class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_NOT_FOUND", exception.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Access Denied"));
     }
 
     @ExceptionHandler(Exception.class)
