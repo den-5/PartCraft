@@ -1,22 +1,16 @@
 package com.partcraft.back.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.dto.componentDTO.CPUDTO;
 import com.partcraft.back.dto.componentDTO.helper.Size;
-import com.partcraft.back.entity.User;
 import com.partcraft.back.integration.helper.TestUtils;
-import com.partcraft.back.repository.UserRepository;
-import com.partcraft.back.util.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("Components Controller Integration Tests")
-class ComponentControllerTest {
+class ComponentControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

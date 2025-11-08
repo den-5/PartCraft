@@ -6,6 +6,7 @@ import com.partcraft.back.dto.PC.UpdatePCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.entity.PC;
 import com.partcraft.back.exception.PCServiceException;
+import com.partcraft.back.exception.PCServiceNotFoundException;
 import com.partcraft.back.repository.PCRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
@@ -35,7 +36,7 @@ public class PCService {
 
     public PCDTO createPC(CreatePCDTO createPCDTO, String username) throws PCServiceException {
         var owner = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new PCServiceException("User with username " + username + " not found"));
+                .orElseThrow(() -> new PCServiceNotFoundException("User with username " + username + " not found"));
 
         var pc = new PC();
         pc.setOwner(owner);
@@ -52,7 +53,7 @@ public class PCService {
 
     public PCDTO updatePCFields(Long id, UpdatePCDTO updatePCDTO) {
         var pc = pcRepository.findById(id).orElseThrow(
-                () -> new PCServiceException("PC with id " + id + " not found"));
+                () -> new PCServiceNotFoundException("PC with id " + id + " not found"));
 
         pc.setName(updatePCDTO.getName());
         pc.setDescription(updatePCDTO.getDescription());
@@ -66,7 +67,7 @@ public class PCService {
 
     public PCDTO updatePCComponents(Long id, UpdatePCDTO updatePCDTO) {
         var pc = pcRepository.findById(id).orElseThrow(
-                () -> new PCServiceException("PC with id " + id + " not found"));
+                () -> new PCServiceNotFoundException("PC with id " + id + " not found"));
 
         setPCComponentsManager.setAllComponents(pc, updatePCDTO);
 
@@ -76,17 +77,17 @@ public class PCService {
 
     public PCDTO getPCById(Long id) throws PCServiceException {
         var pc = pcRepository.findById(id).orElseThrow(
-                () -> new PCServiceException("PC with id " + id + " not found"));
+                () -> new PCServiceNotFoundException("PC with id " + id + " not found"));
 
         return mapToDTO(pc);
     }
 
     public List<PCDTO> getAllUserPCs(String username) throws PCServiceException {
         var user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new PCServiceException("User with username " + username + " not found"));
+                .orElseThrow(() -> new PCServiceNotFoundException("User with username " + username + " not found"));
 
         List<PC> userPCs = pcRepository.findAllByOwnerId(user.getId()).orElseThrow(
-                () -> new PCServiceException("no PCs found by username: " + username)
+                () -> new PCServiceNotFoundException("no PCs found by username: " + username)
         );
 
         return userPCs.stream().map(this::mapToDTO).toList();
@@ -95,7 +96,7 @@ public class PCService {
 
     public void deletePCbyId(Long Id) throws PCServiceException {
         var pc = pcRepository.findById(Id).orElseThrow(
-                () -> new PCServiceException("PC with id " + Id + " not found")
+                () -> new PCServiceNotFoundException("PC with id " + Id + " not found")
         );
         pcRepository.delete(pc);
     }

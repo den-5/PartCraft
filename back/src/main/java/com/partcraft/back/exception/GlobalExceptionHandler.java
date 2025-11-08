@@ -75,11 +75,19 @@ public class GlobalExceptionHandler extends RuntimeException {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    @ExceptionHandler(PCServiceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePCServiceNotFound(PCServiceNotFoundException exception) {
+        log.error("Error in PCServiceNotFoundException class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("PC_SERVICE_NOT_FOUND", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", "Access Denied"));
     }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
