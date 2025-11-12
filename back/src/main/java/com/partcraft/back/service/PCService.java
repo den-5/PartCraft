@@ -5,6 +5,7 @@ import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.PC.UpdatePCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.entity.PC;
+import com.partcraft.back.exception.ComponentCompatibilityServiceException;
 import com.partcraft.back.exception.PCServiceException;
 import com.partcraft.back.exception.PCServiceNotFoundException;
 import com.partcraft.back.repository.PCRepository;
@@ -22,16 +23,19 @@ public class PCService {
     public final UserRepository userRepository;
     public final ComponentRepositoryManager components;
     public final SetPCComponentsManager setPCComponentsManager;
+    public final ComponentCompatibilityService compatibilityService;
 
 
     public PCService(PCRepository pcRepository, UserService userService,
                      UserRepository userRepository, ComponentRepositoryManager components,
-                     SetPCComponentsManager setPCComponentsManager) {
+                     SetPCComponentsManager setPCComponentsManager,
+                     ComponentCompatibilityService compatibilityService) {
         this.pcRepository = pcRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.components = components;
         this.setPCComponentsManager = setPCComponentsManager;
+        this.compatibilityService = compatibilityService;
     }
 
     public PCDTO createPC(CreatePCDTO createPCDTO, String username) throws PCServiceException {
@@ -46,6 +50,24 @@ public class PCService {
         pc.setLocation(createPCDTO.getLocation());
         pc.setVisibility(createPCDTO.getVisibility());
         setPCComponentsManager.setAllComponents(pc, createPCDTO);
+
+        // Compatibility checks
+        try {
+            if (pc.getCpu() != null && pc.getMotherboard() != null) {
+                compatibilityService.isCpuAndMotherboardCompatible(new CPUDTO(pc.getCpu()), new MotherBoardDTO(pc.getMotherboard()));
+            }
+            if (pc.getMotherboard() != null && pc.getRamKit() != null) {
+                compatibilityService.isMotherboardAndRAMCompatible(new MotherBoardDTO(pc.getMotherboard()), new RAMKitDTO(pc.getRamKit()));
+            }
+            if (pc.getGpu() != null && pc.getPcCase() != null) {
+                compatibilityService.isGPUAndCaseCompatible(new GPUDTO(pc.getGpu()), new CaseDTO(pc.getPcCase()));
+            }
+            if (pc.getCpuCooler() != null) {
+                compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
+            }
+        } catch (ComponentCompatibilityServiceException e) {
+            throw new PCServiceException("Component compatibility error: " + e.getMessage());
+        }
 
         var savedPc = pcRepository.save(pc);
         return mapToDTO(savedPc);
@@ -70,6 +92,24 @@ public class PCService {
                 () -> new PCServiceNotFoundException("PC with id " + id + " not found"));
 
         setPCComponentsManager.setAllComponents(pc, updatePCDTO);
+
+        // Compatibility checks
+        try {
+            if (pc.getCpu() != null && pc.getMotherboard() != null) {
+                compatibilityService.isCpuAndMotherboardCompatible(new CPUDTO(pc.getCpu()), new MotherBoardDTO(pc.getMotherboard()));
+            }
+            if (pc.getMotherboard() != null && pc.getRamKit() != null) {
+                compatibilityService.isMotherboardAndRAMCompatible(new MotherBoardDTO(pc.getMotherboard()), new RAMKitDTO(pc.getRamKit()));
+            }
+            if (pc.getGpu() != null && pc.getPcCase() != null) {
+                compatibilityService.isGPUAndCaseCompatible(new GPUDTO(pc.getGpu()), new CaseDTO(pc.getPcCase()));
+            }
+            if (pc.getCpuCooler() != null) {
+                compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
+            }
+        } catch (ComponentCompatibilityServiceException e) {
+            throw new PCServiceException("Component compatibility error: " + e.getMessage());
+        }
 
         pcRepository.save(pc);
         return mapToDTO(pc);

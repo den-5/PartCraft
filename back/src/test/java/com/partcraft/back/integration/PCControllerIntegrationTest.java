@@ -362,6 +362,28 @@ public class PCControllerIntegrationTest {
         }
     }
 
+    @Nested
+    @DisplayName("Compatibility error tests")
+    class CompatibilityErrorTests {
+        @Test
+        @DisplayName("Should return error when CPU and motherboard are incompatible")
+        void shouldReturnErrorForIncompatibleCpuMotherboard() throws Exception {
+            String userToken = testUtils.createUser();
+            // Create incompatible CPU and motherboard in the test DB
+            Long cpuId = testUtils.createCpu("LGA1151");
+            Long motherboardId = testUtils.createMotherboard("AM4");
+            var createPCDTO = sampleCreatePCDTO();
+            createPCDTO.setCpuId(cpuId);
+            createPCDTO.setMotherboardId(motherboardId);
+            mockMvc.perform(post(PC_BASE_URL + "/")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .header("Authorization", "Bearer " + userToken)
+                            .content(objectMapper.writeValueAsString(createPCDTO)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Component compatibility error")));
+        }
+    }
+
     // Helper methods to create sample DTOs
     private CreatePCDTO sampleCreatePCDTO() {
         CreatePCDTO dto = new CreatePCDTO();

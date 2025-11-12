@@ -5,9 +5,11 @@ import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.entity.PC;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.entity.component.CPU;
+import com.partcraft.back.exception.ComponentCompatibilityServiceException;
 import com.partcraft.back.exception.PCServiceException;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.repository.PCRepository;
+import com.partcraft.back.service.ComponentCompatibilityService;
 import com.partcraft.back.service.PCService;
 import com.partcraft.back.service.UserService;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
@@ -27,6 +29,7 @@ public class PCServiceTest {
     private ComponentRepositoryManager components;
     private PCService pcService;
     private SetPCComponentsManager setPCComponentsManager;
+    private ComponentCompatibilityService compatibilityService;
 
     @BeforeEach
     void setUp() {
@@ -35,7 +38,8 @@ public class PCServiceTest {
         userRepository = mock(UserRepository.class);
         components = mock(ComponentRepositoryManager.class);
         setPCComponentsManager = new SetPCComponentsManager(components);
-        pcService = new PCService(pcRepository, userService, userRepository, components, setPCComponentsManager);
+        compatibilityService = mock(ComponentCompatibilityService.class);
+        pcService = new PCService(pcRepository, userService, userRepository, components, setPCComponentsManager, compatibilityService);
     }
 
     @Test
@@ -242,6 +246,53 @@ public class PCServiceTest {
         when(caseCoolerRepo.findById(9L)).thenReturn(Optional.empty());
         when(components.getCaseCoolerRepository()).thenReturn(caseCoolerRepo);
         assertThrows(PCServiceException.class, () -> pcService.createPC(dto, "user"));
+    }
+
+    @Test
+    void testCreatePC_incompatibleCpuMotherboard_throwsException() {
+        CreatePCDTO dto = createMockPCDTO();
+        dto.setCpuId(1L);
+        dto.setMotherboardId(2L);
+        User user = new User();
+        user.setId(10L);
+        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(user));
+        var cpuRepo = mock(com.partcraft.back.repository.component.CPURepository.class);
+        var mbRepo = mock(com.partcraft.back.repository.component.MotherBoardRepository.class);
+        var cpu = new com.partcraft.back.entity.component.CPU();
+        cpu.setId(1L);
+        var mb = new com.partcraft.back.entity.component.MotherBoard();
+        mb.setId(2L);
+        when(cpuRepo.findById(1L)).thenReturn(Optional.of(cpu));
+        when(mbRepo.findById(2L)).thenReturn(Optional.of(mb));
+        when(components.getCpuRepository()).thenReturn(cpuRepo);
+        when(components.getMotherBoardRepository()).thenReturn(mbRepo);
+        doThrow(new ComponentCompatibilityServiceException("CPU and motherboard sockets do not match")).when(compatibilityService)
+                .isCpuAndMotherboardCompatible(any(), any());
+        assertThrows(PCServiceException.class, () -> pcService.createPC(dto, "user"));
+    }
+
+    @Test
+    void testCreatePC_compatibleCpuMotherboard_succeeds() {
+        CreatePCDTO dto = createMockPCDTO();
+        dto.setCpuId(1L);
+        dto.setMotherboardId(2L);
+        User user = new User();
+        user.setId(10L);
+        when(userRepository.findUserByUsername(anyString())).thenReturn(Optional.of(user));
+        var cpuRepo = mock(com.partcraft.back.repository.component.CPURepository.class);
+        var mbRepo = mock(com.partcraft.back.repository.component.MotherBoardRepository.class);
+        var cpu = new com.partcraft.back.entity.component.CPU();
+        cpu.setId(1L);
+        var mb = new com.partcraft.back.entity.component.MotherBoard();
+        mb.setId(2L);
+        when(cpuRepo.findById(1L)).thenReturn(Optional.of(cpu));
+        when(mbRepo.findById(2L)).thenReturn(Optional.of(mb));
+        when(components.getCpuRepository()).thenReturn(cpuRepo);
+        when(components.getMotherBoardRepository()).thenReturn(mbRepo);
+        when(compatibilityService.isCpuAndMotherboardCompatible(any(), any())).thenReturn(true);
+        when(pcRepository.save(any(PC.class))).thenAnswer(inv -> inv.getArgument(0));
+        PCDTO result = pcService.createPC(dto, "user");
+        assertEquals("Test PC", result.getName());
     }
 
     private CreatePCDTO createMockPCDTO() {

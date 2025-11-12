@@ -18,20 +18,26 @@ import java.util.Optional;
 public class ComponentCompatibilityService {
 
     @Autowired
-    private ComponentPlacementRepository componentRepository;
+    public ComponentPlacementRepository componentRepository;
 
     public boolean isCpuAndMotherboardCompatible(CPUDTO cpu, MotherBoardDTO motherboard) {
         if (motherboard.getSocketType() == null || cpu.getSocketType() == null) {
             throw new ComponentCompatibilityServiceException("CPU or motherboard socket type is null");
         }
-        return Objects.equals(motherboard.getSocketType(), cpu.getSocketType());
+        if (!Objects.equals(motherboard.getSocketType(), cpu.getSocketType())) {
+            throw new ComponentCompatibilityServiceException("CPU and motherboard sockets do not match");
+        }
+        return true;
     }
 
     public boolean isMotherboardAndRAMCompatible(MotherBoardDTO motherboard, RAMKitDTO ramKit) {
         if (motherboard.getMemoryType() == null || ramKit.getRamType() == null) {
             throw new ComponentCompatibilityServiceException("Motherboard or RAM memory type is null");
         }
-        return Objects.equals(motherboard.getMemoryType(), ramKit.getRamType());
+        if (!Objects.equals(motherboard.getMemoryType(), ramKit.getRamType())) {
+            throw new ComponentCompatibilityServiceException("Motherboard and RAM memory types do not match");
+        }
+        return true;
     }
 
     public boolean isGPUAndCaseCompatible(GPUDTO gpu, CaseDTO pcCase) {
@@ -56,8 +62,8 @@ public class ComponentCompatibilityService {
         List<CaseCoolerDTO> coolersLeft = new ArrayList<>(List.of(caseCoolers));
         for (var place : places) {
             for (int j = 0; j < coolersLeft.size(); j++) {
-                if (place.getMaxSize().getHeight() >= caseCoolers[j].getSize().getHeight()) {
-                    coolersLeft.remove(caseCoolers[j]);
+                if (place.getMaxSize().getHeight() >= coolersLeft.get(j).getSize().getHeight()) {
+                    coolersLeft.remove(j);
                     break;
                 }
             }
@@ -174,5 +180,9 @@ public class ComponentCompatibilityService {
 
     public boolean isPSUCompatible() {
         return true;
+    }
+
+    public void setComponentRepository(ComponentPlacementRepository repository) {
+        this.componentRepository = repository;
     }
 }
