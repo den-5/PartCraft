@@ -22,8 +22,6 @@ public class CaseCooler {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pc_id")
     private PC pc;
-
-    private String coolingType;
     private Integer fanSize;
     private Color coolingColor;
     private String pictureUrl;
@@ -31,7 +29,7 @@ public class CaseCooler {
     private Size size;
 
     public CaseCooler(CaseCoolerDTO dto) {
-        this.coolingType = dto.getCoolingType();
+
         this.fanSize = dto.getFanSize();
         if (dto.getCoolingColor() != null) {
             this.coolingColor = Color.decode(dto.getCoolingColor());

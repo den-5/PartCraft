@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.partcraft.back.dto.PC.CreatePCDTO;
 import com.partcraft.back.dto.PC.UpdatePCDTO;
 import com.partcraft.back.integration.helper.TestUtils;
-import com.partcraft.back.util.VisibilityState;
+import com.partcraft.back.enums.VisibilityState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class CaseCoolerDTO {
     private Long id;
     private Long pcId;
-    private String coolingType;
     private Integer fanSize;
     private String coolingColor;
     private String pictureUrl;
@@ -21,7 +20,6 @@ public class CaseCoolerDTO {
     public CaseCoolerDTO(CaseCooler cooler) {
         this.id = cooler.getId();
         this.pcId = cooler.getPc() != null ? cooler.getPc().getId() : null;
-        this.coolingType = cooler.getCoolingType();
         this.fanSize = cooler.getFanSize();
         this.coolingColor = cooler.getCoolingColor() != null ? cooler.getCoolingColor().toString() : null;
         this.pictureUrl = cooler.getPictureUrl();

@@ -20,6 +20,7 @@ public class CPU {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String cpuSocketType;
     private String cpuBrand;
     private String cpuModel;
     private Integer cpuCores;
@@ -35,6 +36,7 @@ public class CPU {
         this.cpuBrand = dto.getCpuBrand();
         this.cpuModel = dto.getCpuModel();
         this.cpuCores = dto.getCpuCores();
+        this.cpuSocketType = dto.getSocketType();
         this.cpuThreads = dto.getCpuThreads();
         this.cpuBaseClockGhz = dto.getCpuBaseClockGhz();
         this.cpuBoostClockGhz = dto.getCpuBoostClockGhz();

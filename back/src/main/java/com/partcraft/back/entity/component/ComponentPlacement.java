@@ -1,5 +1,6 @@
 package com.partcraft.back.entity.component;
 
+import com.partcraft.back.dto.componentDTO.helper.Size;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,8 @@ public class ComponentPlacement {
 
     @Column(nullable = false)
     private String componentType; // e.g., "CPU", "GPU", etc.
+    @Embedded
+    private Size maxSize;
 
     private Double x;
     private Double y;

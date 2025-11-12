@@ -1,6 +1,6 @@
 package com.partcraft.back.dto.PC;
 
-import com.partcraft.back.util.VisibilityState;
+import com.partcraft.back.enums.VisibilityState;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

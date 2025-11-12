@@ -61,6 +61,13 @@ public class GlobalExceptionHandler extends RuntimeException {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
+    @ExceptionHandler(ComponentCompatibilityServiceException.class)
+    public ResponseEntity<ErrorResponse> handleComponentCompatibilityServiceError(ComponentCompatibilityServiceException exception) {
+        log.error("Error in RefreshTokenService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("COMPONENT_COMPATIBILITY_SERVICE_ERROR", exception.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
     @ExceptionHandler(PCServiceException.class)
     public ResponseEntity<ErrorResponse> handlePCServiceError(PCServiceException exception) {
         log.error("Error in PCService class: ", exception);

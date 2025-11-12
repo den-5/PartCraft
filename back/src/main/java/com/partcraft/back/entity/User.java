@@ -1,11 +1,10 @@
 package com.partcraft.back.entity;
 
-import com.partcraft.back.util.UserRole;
+import com.partcraft.back.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Value;
 
 @Entity
 @Table(name = "`user`")

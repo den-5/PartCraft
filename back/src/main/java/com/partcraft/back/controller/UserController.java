@@ -4,7 +4,7 @@ import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.exception.AuthException;
 import com.partcraft.back.service.UserService;
-import com.partcraft.back.util.UserRole;
+import com.partcraft.back.enums.UserRole;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;

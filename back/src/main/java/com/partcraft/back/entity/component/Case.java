@@ -5,6 +5,9 @@ import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "`case`")
 @Getter
@@ -15,7 +18,6 @@ public class Case {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String caseModel;
     private String caseColor;
     private String rgbSetup;
@@ -24,7 +26,7 @@ public class Case {
     private Size size;
 
     @OneToMany(mappedBy = "pcCase", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<ComponentPlacement> componentPlacements = new java.util.ArrayList<>();
+    private List<ComponentPlacement> componentPlacements = new ArrayList<>();
 
     public Case(CaseDTO dto) {
         this.caseModel = dto.getCaseModel();
@@ -34,6 +36,6 @@ public class Case {
         if (dto.getSize() != null) {
             this.size = new Size(dto.getSize().getWidth(), dto.getSize().getLength(), dto.getSize().getHeight());
         }
-        this.componentPlacements = new java.util.ArrayList<>();
+        this.componentPlacements = new ArrayList<>();
     }
 }

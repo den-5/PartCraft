@@ -1,4 +1,4 @@
-package com.partcraft.back.util;
+package com.partcraft.back.enums;
 
 public enum VisibilityState {
     PUBLIC,

@@ -14,6 +14,7 @@ public class MotherBoardDTO {
     private String motherboardBrand;
     private String motherboardModel;
     private String chipset;
+    private String memoryType;
     private String socketType;
     private String pictureUrl;
     private Size size;

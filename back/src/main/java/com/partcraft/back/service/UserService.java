@@ -10,7 +10,7 @@ import com.partcraft.back.exception.UserServiceNotFoundException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
-import com.partcraft.back.util.UserRole;
+import com.partcraft.back.enums.UserRole;
 import com.partcraft.back.util.VerifyUserDataFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

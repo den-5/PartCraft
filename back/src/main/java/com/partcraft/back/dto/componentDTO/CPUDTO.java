@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CPUDTO {
     private Long id;
+    private String socketType;
     private String cpuBrand;
     private String cpuModel;
     private Integer cpuCores;
@@ -23,6 +24,7 @@ public class CPUDTO {
 
     public CPUDTO(CPU cpu) {
         this.id = cpu.getId();
+        this.socketType = cpu.getCpuSocketType();
         this.cpuBrand = cpu.getCpuBrand();
         this.cpuModel = cpu.getCpuModel();
         this.cpuCores = cpu.getCpuCores();

@@ -1,7 +1,7 @@
 package com.partcraft.back.dto.PC;
 
 import com.partcraft.back.dto.componentDTO.*;
-import com.partcraft.back.util.VisibilityState;
+import com.partcraft.back.enums.VisibilityState;
 import lombok.*;
 
 import java.time.Instant;

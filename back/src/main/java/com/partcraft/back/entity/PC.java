@@ -1,7 +1,7 @@
 package com.partcraft.back.entity;
 
 import com.partcraft.back.entity.component.*;
-import com.partcraft.back.util.VisibilityState;
+import com.partcraft.back.enums.VisibilityState;
 import jakarta.persistence.*;
 import lombok.*;
 
