@@ -2,7 +2,7 @@ package com.partcraft.back.dto.componentDTO;
 
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.entity.component.Case;
-import com.partcraft.back.entity.component.ComponentPlacement;
+import com.partcraft.back.entity.ComponentPlacement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +19,7 @@ public class CaseDTO {
     private String rgbSetup;
     private String pictureUrl;
     private Size size;
+    private Integer powerDraw;
     private List<Long> componentPlacementIds;
 
     public CaseDTO(Case pcCase) {
@@ -26,6 +27,7 @@ public class CaseDTO {
         this.caseModel = pcCase.getCaseModel();
         this.caseColor = pcCase.getCaseColor();
         this.rgbSetup = pcCase.getRgbSetup();
+        this.powerDraw = pcCase.getPowerDraw();
         this.pictureUrl = pcCase.getPictureUrl();
         if (pcCase.getSize() != null) {
             this.size = new Size(pcCase.getSize().getWidth(), pcCase.getSize().getLength(), pcCase.getSize().getHeight());

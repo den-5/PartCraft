@@ -15,6 +15,7 @@ public class CaseCoolerDTO {
     private Integer fanSize;
     private String coolingColor;
     private String pictureUrl;
+    private Integer powerDraw;
     private Size size;
 
     public CaseCoolerDTO(CaseCooler cooler) {

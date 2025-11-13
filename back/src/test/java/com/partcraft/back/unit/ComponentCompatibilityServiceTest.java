@@ -3,7 +3,7 @@ package com.partcraft.back.unit;
 import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.dto.componentDTO.helper.Size;
-import com.partcraft.back.entity.component.ComponentPlacement;
+import com.partcraft.back.entity.ComponentPlacement;
 import com.partcraft.back.exception.ComponentCompatibilityServiceException;
 import com.partcraft.back.service.ComponentCompatibilityService;
 import org.junit.jupiter.api.BeforeEach;

@@ -8,8 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.awt.*;
-
 @Entity
 @Getter
 @Setter
@@ -21,7 +19,7 @@ public class CPUCooler {
     private CoolingType coolingType;
     private String cpuSocket;
     private Integer fanCount;
-    private Color coolingColor;
+    private java.awt.Color coolingColor;
     private Integer caseCoolerSlotsRequired;
     private String PCCaseType;
     private String pictureUrl;
@@ -36,7 +34,7 @@ public class CPUCooler {
         this.fanCount = dto.getFanCount();
         this.caseCoolerSlotsRequired = dto.getCaseCoolerSlotsRequired();
         if (dto.getCoolingColor() != null) {
-            this.coolingColor = Color.decode(dto.getCoolingColor());
+            this.coolingColor = java.awt.Color.decode(dto.getCoolingColor());
         }
         this.PCCaseType = dto.getPcCaseType();
         this.pictureUrl = dto.getPictureUrl();
@@ -45,4 +43,6 @@ public class CPUCooler {
         }
         this.powerDraw = dto.getPowerDraw();
     }
+
+    // Optionally, add a helper method to fetch prices for this CPUCooler using the generic price structure.
 }

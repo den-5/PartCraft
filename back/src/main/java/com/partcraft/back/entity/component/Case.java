@@ -1,6 +1,7 @@
 package com.partcraft.back.entity.component;
 
 import com.partcraft.back.dto.componentDTO.CaseDTO;
+import com.partcraft.back.entity.ComponentPlacement;
 import com.partcraft.back.entity.component.helper.Size;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,7 +25,7 @@ public class Case {
     private String pictureUrl;
     @Embedded
     private Size size;
-
+    private Integer powerDraw;
     @OneToMany(mappedBy = "pcCase", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComponentPlacement> componentPlacements = new ArrayList<>();
 
@@ -37,5 +38,6 @@ public class Case {
             this.size = new Size(dto.getSize().getWidth(), dto.getSize().getLength(), dto.getSize().getHeight());
         }
         this.componentPlacements = new ArrayList<>();
+        this.powerDraw = dto.getPowerDraw();
     }
 }

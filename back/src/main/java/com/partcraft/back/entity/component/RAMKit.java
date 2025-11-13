@@ -19,15 +19,14 @@ public class RAMKit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private Integer ramSizeGb;
     private String ramType;
     private Integer ramSpeedMhz;
     private Integer ramSticksCount;
     private String pictureUrl;
-    private Integer powerDraw;
     @Embedded
     private Size size;
+    private Integer powerDraw;
 
     public RAMKit(RAMKitDTO dto) {
         this.ramSizeGb = dto.getRamSizeGb();
@@ -40,4 +39,6 @@ public class RAMKit {
             this.size = new Size(dto.getSize().getWidth(), dto.getSize().getLength(), dto.getSize().getHeight());
         }
     }
+
+    // Optionally, add a helper method to fetch prices for this RAMKit using the generic price structure.
 }

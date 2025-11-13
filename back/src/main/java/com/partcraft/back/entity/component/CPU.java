@@ -2,11 +2,7 @@ package com.partcraft.back.entity.component;
 
 import com.partcraft.back.dto.componentDTO.CPUDTO;
 import com.partcraft.back.entity.component.helper.Size;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Embedded;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,7 +15,6 @@ public class CPU {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String cpuSocketType;
     private String cpuBrand;
     private String cpuModel;
@@ -46,4 +41,6 @@ public class CPU {
         }
         this.powerDraw = dto.getPowerDraw();
     }
+
+    // Optionally, add a helper method to fetch prices for this CPU using the generic price structure.
 }
