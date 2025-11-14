@@ -3,7 +3,7 @@ package com.partcraft.back.service;
 import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.enums.CoolingType;
-import com.partcraft.back.exception.ComponentCompatibilityServiceException;
+import com.partcraft.back.exception.service.ComponentCompatibilityServiceException;
 import com.partcraft.back.repository.component.ComponentPlacementRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

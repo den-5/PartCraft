@@ -5,8 +5,8 @@ import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.UserServiceException;
-import com.partcraft.back.exception.UserServiceNotFoundException;
+import com.partcraft.back.exception.service.UserServiceException;
+import com.partcraft.back.exception.NotFoundException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -114,7 +114,7 @@ public class UserServiceTest {
         @Test
         void getUserByUsername_shouldThrowUserServiceException_whenUserDoesNotExist() {
             when(userRepository.findUserByUsername("nonexistent")).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(UserServiceNotFoundException.class)
+            assertThatThrownBy(() -> userService.getUserByUsername("nonexistent")).isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("User with username nonexistent not found");
         }
 
@@ -134,7 +134,7 @@ public class UserServiceTest {
         @Test
         void getUserByEmail_shouldThrowUserServiceException_whenUserDoesNotExist() {
             when(userRepository.findUserByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(UserServiceNotFoundException.class)
+            assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com")).isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("User with email nonexistent@example.com not found");
         }
     }
@@ -167,7 +167,7 @@ public class UserServiceTest {
             try (MockedStatic<VerifyUserDataFormat> mockVerify = mockStatic(VerifyUserDataFormat.class)) {
                 mockVerify.when(() -> VerifyUserDataFormat.verifyUsernameFormat(updateUserDTO.getUsername())).thenReturn(true);
                 when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(UserServiceNotFoundException.class)
+                assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTO, username)).isInstanceOf(NotFoundException.class)
                         .hasMessageContaining("User with username " + username + " not found");
             }
         }
@@ -253,7 +253,7 @@ public class UserServiceTest {
             String username = "john228";
             var updateUserDTOEmail = new UpdateUserDTO(null, "newemail@gmail.com", null);
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOEmail, username)).isInstanceOf(UserServiceNotFoundException.class)
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOEmail, username)).isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
 
@@ -295,7 +295,7 @@ public class UserServiceTest {
             String username = "john228";
             var updateUserDTOPassword = new UpdateUserDTO(null, null, "newPassword123!!");
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOPassword, username)).isInstanceOf(UserServiceNotFoundException.class)
+            assertThatThrownBy(() -> userService.updateUserSensitiveData(updateUserDTOPassword, username)).isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
     }
@@ -314,7 +314,7 @@ public class UserServiceTest {
         void deleteUser_shouldThrowUserServiceException_whenUserDoesNotExist() {
             String username = "john228";
             when(userRepository.findUserByUsername(username)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> userService.deleteUser(username)).isInstanceOf(UserServiceNotFoundException.class)
+            assertThatThrownBy(() -> userService.deleteUser(username)).isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("User with username " + username + " not found");
         }
     }

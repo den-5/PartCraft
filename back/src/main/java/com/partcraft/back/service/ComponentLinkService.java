@@ -2,12 +2,14 @@ package com.partcraft.back.service;
 
 import com.partcraft.back.dto.ComponentLinkDTO;
 import com.partcraft.back.entity.ComponentLink;
+import com.partcraft.back.exception.NotFoundException;
 import com.partcraft.back.repository.ComponentLinkRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,19 +31,24 @@ public class ComponentLinkService {
 
     public ComponentLinkDTO getComponentLink(Long id) {
         ComponentLink link = componentLinkRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ComponentLink not found"));
+                .orElseThrow(() -> new NotFoundException("ComponentLink not found"));
         return modelMapper.map(link, ComponentLinkDTO.class);
     }
 
-    public List<ComponentLinkDTO> getAllComponentLinks() {
-        return componentLinkRepository.findAll().stream()
+    public List<ComponentLinkDTO> getAllComponentLinks(Long componentId, String componentType) {
+        Optional<List<ComponentLink>> linksOpt = componentLinkRepository.findAllByComponentIdAndComponentType(componentId, componentType);
+        if (linksOpt.isEmpty() || linksOpt.get().isEmpty()) {
+            throw new NotFoundException("No ComponentLinks found");
+        }
+        return linksOpt.get().stream()
                 .map(link -> modelMapper.map(link, ComponentLinkDTO.class))
                 .collect(Collectors.toList());
     }
 
+
     public ComponentLinkDTO updateComponentLink(Long id, ComponentLinkDTO dto) {
         ComponentLink link = componentLinkRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ComponentLink not found"));
+                .orElseThrow(() -> new NotFoundException("ComponentLink not found"));
         link.setComponentType(dto.getComponentType());
         link.setComponentId(dto.getComponentId());
         link.setUrl(dto.getUrl());
@@ -51,7 +58,7 @@ public class ComponentLinkService {
 
     public void deleteComponentLink(Long id) {
         if (!componentLinkRepository.existsById(id)) {
-            throw new RuntimeException("ComponentLink not found");
+            throw new NotFoundException("ComponentLink not found");
         }
         componentLinkRepository.deleteById(id);
     }

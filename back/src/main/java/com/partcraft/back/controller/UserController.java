@@ -74,7 +74,6 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    // Get current authenticated user's role
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/role/")
     public ResponseEntity<UserRole> getCurrentUserRole() {
@@ -82,7 +81,6 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserRole(username));
     }
 
-    // Get user role by username
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/role/{username}")
     public ResponseEntity<UserRole> getUserRoleByUsername(@PathVariable String username) {

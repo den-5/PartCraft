@@ -1,4 +1,4 @@
-package com.partcraft.back.exception;
+package com.partcraft.back.exception.service;
 
 public class UserServiceException extends RuntimeException {
     public UserServiceException(String message) {

@@ -1,11 +1,11 @@
 package com.partcraft.back.exception;
 
+import com.partcraft.back.exception.service.*;
 import com.partcraft.back.util.ErrorResponse;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.slf4j.Logger;
@@ -75,17 +75,18 @@ public class GlobalExceptionHandler extends RuntimeException {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
-    @ExceptionHandler(UserServiceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserServiceNotFound(UserServiceNotFoundException exception) {
-        log.error("Error in UserServiceNotFound class: ", exception);
-        ErrorResponse errorResponse = new ErrorResponse("USER_SERVICE_NOT_FOUND", exception.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+
+    @ExceptionHandler(ComponentPriceServiceException.class)
+    public ResponseEntity<ErrorResponse> handleComponentPriceServiceError(ComponentPriceServiceException exception) {
+        log.error("Error in ComponentPriceService class: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("COMPONENT_PRICE_SERVICE_ERROR", exception.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
     }
 
-    @ExceptionHandler(PCServiceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlePCServiceNotFound(PCServiceNotFoundException exception) {
-        log.error("Error in PCServiceNotFoundException class: ", exception);
-        ErrorResponse errorResponse = new ErrorResponse("PC_SERVICE_NOT_FOUND", exception.getMessage());
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException exception) {
+        log.error("Resource not found: ", exception);
+        ErrorResponse errorResponse = new ErrorResponse("NOT_FOUND", exception.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 

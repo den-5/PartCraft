@@ -2,7 +2,7 @@ package com.partcraft.back.service;
 
 import com.partcraft.back.entity.RefreshToken;
 import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.RefreshTokenServiceException;
+import com.partcraft.back.exception.service.RefreshTokenServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -16,7 +16,7 @@ public class RefreshTokenService {
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
 
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,  JwtUtils jwtUtils,
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, JwtUtils jwtUtils,
                                UserRepository userRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtils = jwtUtils;
@@ -24,22 +24,22 @@ public class RefreshTokenService {
     }
 
     public String createRefreshToken(User user) {
-        try{
+        try {
             String token = jwtUtils.generateRefreshToken(user.getUsername());
             Instant expiryDate = Instant.now().plusSeconds(jwtUtils.getRefreshTokenExpirationInMs());
 
             var refreshToken = new RefreshToken(token, user, expiryDate);
             refreshTokenRepository.save(refreshToken);
             return refreshToken.getToken();
-        }catch(Exception e){
-            throw new RefreshTokenServiceException("Refresh token creation failed: "  + e.getMessage());
+        } catch (Exception e) {
+            throw new RefreshTokenServiceException("Refresh token creation failed: " + e.getMessage());
         }
     }
 
     public String createRefreshToken(String username) {
-        try{
-            var user  = userRepository.findUserByUsername(username).orElse(null);
-            if(user == null){
+        try {
+            var user = userRepository.findUserByUsername(username).orElse(null);
+            if (user == null) {
                 throw new RuntimeException("User not found");
             }
 
@@ -50,8 +50,8 @@ public class RefreshTokenService {
             refreshTokenRepository.save(refreshToken);
             return refreshToken.getToken();
 
-        }catch(Exception e){
-            throw new RefreshTokenServiceException("Refresh token creation failed: "  + e.getMessage());
+        } catch (Exception e) {
+            throw new RefreshTokenServiceException("Refresh token creation failed: " + e.getMessage());
         }
     }
 
@@ -60,11 +60,11 @@ public class RefreshTokenService {
     }
 
     public void deleteRefreshToken(String refreshToken) throws RefreshTokenServiceException {
-        try{
-            if (jwtUtils.validateRefreshToken(refreshToken)){
+        try {
+            if (jwtUtils.validateRefreshToken(refreshToken)) {
                 refreshTokenRepository.deleteByToken(refreshToken);
             }
-        } catch(Exception e){
+        } catch (Exception e) {
             throw new RefreshTokenServiceException("Failed to delete refresh token: " + e.getMessage());
         }
     }

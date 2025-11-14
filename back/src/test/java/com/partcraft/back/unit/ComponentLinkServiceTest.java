@@ -82,13 +82,12 @@ public class ComponentLinkServiceTest {
         List<ComponentLink> entities = Arrays.asList(sampleEntity, entity2);
         List<ComponentLinkDTO> dtos = Arrays.asList(sampleDTO, dto2);
 
-        when(componentLinkRepository.findAll()).thenReturn(entities);
+        when(componentLinkRepository.findAllByComponentIdAndComponentType(100L, "CPU")).thenReturn(Optional.of(List.of(sampleEntity)));
         when(modelMapper.map(sampleEntity, ComponentLinkDTO.class)).thenReturn(sampleDTO);
-        when(modelMapper.map(entity2, ComponentLinkDTO.class)).thenReturn(dto2);
 
-        List<ComponentLinkDTO> result = componentLinkService.getAllComponentLinks();
-        assertThat(result).containsExactlyElementsOf(dtos);
-        verify(componentLinkRepository, times(1)).findAll();
+        List<ComponentLinkDTO> result = componentLinkService.getAllComponentLinks(100L, "CPU");
+        assertThat(result).containsExactly(sampleDTO);
+        verify(componentLinkRepository, times(1)).findAllByComponentIdAndComponentType(100L, "CPU");
     }
 
     @Test
@@ -133,4 +132,3 @@ public class ComponentLinkServiceTest {
                 .hasMessageContaining("ComponentLink not found");
     }
 }
-

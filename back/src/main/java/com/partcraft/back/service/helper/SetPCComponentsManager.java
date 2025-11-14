@@ -3,7 +3,7 @@ package com.partcraft.back.service.helper;
 import com.partcraft.back.dto.PC.CreateOrUpdatePCDTO;
 import com.partcraft.back.entity.PC;
 import com.partcraft.back.entity.component.CaseCooler;
-import com.partcraft.back.exception.PCServiceException;
+import com.partcraft.back.exception.service.PCServiceException;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

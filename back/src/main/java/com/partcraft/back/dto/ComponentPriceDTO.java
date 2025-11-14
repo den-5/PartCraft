@@ -12,17 +12,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Data
 public class ComponentPriceDTO {
+    private Long id;
     private Double value;
     private LocalDate time;
     private Location location;
     private String componentType;
     private Long componentId;
-
-    public ComponentPriceDTO(ComponentPrice price) {
-        this.value = price.getValue();
-        this.time = price.getTime();
-        this.location = price.getLocation();
-        this.componentType = price.getComponentType();
-        this.componentId = price.getComponentId();
-    }
 }

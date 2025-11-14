@@ -2,7 +2,7 @@ package com.partcraft.back.unit;
 
 import com.partcraft.back.entity.RefreshToken;
 import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.RefreshTokenServiceException;
+import com.partcraft.back.exception.service.RefreshTokenServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;

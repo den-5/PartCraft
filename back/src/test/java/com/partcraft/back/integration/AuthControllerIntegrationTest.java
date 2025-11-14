@@ -201,7 +201,7 @@ public class AuthControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.code").value("USER_SERVICE_NOT_FOUND"))
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                     .andExpect(jsonPath("$.message").exists());
         }
 

@@ -3,6 +3,7 @@ package com.partcraft.back.unit;
 import com.partcraft.back.dto.componentDTO.CPUDTO;
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.entity.component.CPU;
+import com.partcraft.back.exception.service.ComponentServiceException;
 import com.partcraft.back.repository.component.CPURepository;
 import com.partcraft.back.service.component.CPUService;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,7 +71,7 @@ public class ComponentServiceTest {
     void findById_shouldThrowException_whenEntityDoesNotExist() {
         when(cpuRepository.findById(42L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> cpuService.findById(42L))
-                .isInstanceOf(com.partcraft.back.exception.ComponentServiceException.class)
+                .isInstanceOf(ComponentServiceException.class)
                 .hasMessageContaining("Entity with id 42 not found");
     }
 
@@ -137,7 +138,7 @@ public class ComponentServiceTest {
         when(cpuRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> cpuService.update(99L, dto))
-                .isInstanceOf(com.partcraft.back.exception.ComponentServiceException.class)
+                .isInstanceOf(ComponentServiceException.class)
                 .hasMessageContaining("Entity with id 99 not found");
     }
 
@@ -160,7 +161,7 @@ public class ComponentServiceTest {
     @Test
     void delete_shouldNotCallRepositoryDelete_whenEntityDoesNotExist() {
         when(cpuRepository.existsById(2L)).thenReturn(false);
-        assertThatThrownBy(() -> cpuService.delete(2L)).isInstanceOf(com.partcraft.back.exception.ComponentServiceException.class);
+        assertThatThrownBy(() -> cpuService.delete(2L)).isInstanceOf(ComponentServiceException.class);
         verify(cpuRepository, never()).deleteById(2L);
     }
 

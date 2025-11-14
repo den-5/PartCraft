@@ -4,7 +4,7 @@ import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.entity.ComponentPlacement;
-import com.partcraft.back.exception.ComponentCompatibilityServiceException;
+import com.partcraft.back.exception.service.ComponentCompatibilityServiceException;
 import com.partcraft.back.service.ComponentCompatibilityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

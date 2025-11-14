@@ -5,8 +5,8 @@ import com.partcraft.back.dto.User.CreateUserDTO;
 import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.UserServiceException;
-import com.partcraft.back.exception.UserServiceNotFoundException;
+import com.partcraft.back.exception.service.UserServiceException;
+import com.partcraft.back.exception.NotFoundException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -57,7 +57,7 @@ public class UserService {
 
     public void deleteUser(String username) throws UserServiceException {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+        if (user == null) throw new NotFoundException("User with username " + username + " not found");
 
         refreshTokenRepository.deleteAllByUser(user);
         userRepository.delete(user);
@@ -66,7 +66,7 @@ public class UserService {
     public UserDTO getUserByUsername(String username) {
         var user = userRepository.findUserByUsername(username).orElse(null);
         if (user != null) return new UserDTO(user);
-        else throw new UserServiceNotFoundException("User with username " + username + " not found");
+        else throw new NotFoundException("User with username " + username + " not found");
     }
 
     public AuthResponseDTO getUserByEmail(String email) {
@@ -74,7 +74,7 @@ public class UserService {
             throw new UserServiceException("Invalid email format");
         }
         var user = userRepository.findUserByEmail(email).orElse(null);
-        if (user == null) throw new UserServiceNotFoundException("User with email " + email + " not found");
+        if (user == null) throw new NotFoundException("User with email " + email + " not found");
 
         String refreshToken = refreshTokenService.createRefreshToken(user);
         String accessToken = jwtUtils.generateToken(user.getUsername());
@@ -83,7 +83,7 @@ public class UserService {
 
     public UserDTO updateUserRole(String username, UserRole role) {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+        if (user == null) throw new NotFoundException("User with username " + username + " not found");
 
         user.setRole(role);
         userRepository.save(user);
@@ -100,13 +100,13 @@ public class UserService {
 
     public UserRole getUserRole(String username) {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+        if (user == null) throw new NotFoundException("User with username " + username + " not found");
         return user.getRole();
     }
 
     public UserDTO updateUserSensitiveData(UpdateUserDTO updateUserDTO, String username) throws UserServiceException {
         var user = userRepository.findUserByUsername(username).orElse(null);
-        if (user == null) throw new UserServiceNotFoundException("User with username " + username + " not found");
+        if (user == null) throw new NotFoundException("User with username " + username + " not found");
 
         boolean updated = false;
 
