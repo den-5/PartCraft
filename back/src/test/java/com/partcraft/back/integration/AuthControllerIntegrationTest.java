@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -55,7 +54,7 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void clean() {
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
     }

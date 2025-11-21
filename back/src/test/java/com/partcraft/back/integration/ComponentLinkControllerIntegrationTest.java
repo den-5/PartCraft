@@ -3,6 +3,9 @@ package com.partcraft.back.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.partcraft.back.dto.ComponentLinkDTO;
 import com.partcraft.back.integration.helper.TestUtils;
+import com.partcraft.back.repository.ComponentLinkRepository;
+import com.partcraft.back.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,19 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("ComponentLinkController Integration Tests")
-public class ComponentLinkControllerIntegrationTest {
+public class ComponentLinkControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -32,7 +31,26 @@ public class ComponentLinkControllerIntegrationTest {
     @Autowired
     private TestUtils testUtils;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ComponentLinkRepository componentLinkRepository;
+
     private static final String BASE_URL = "/api/component/link";
+
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        // Delete component links first before users to avoid FK constraint violations
+        componentLinkRepository.deleteAll();
+        userRepository.deleteAll();
+        // Create shared users once
+        adminToken = testUtils.createAdmin();
+        userToken = testUtils.createUser();
+    }
 
     private ComponentLinkDTO sampleLinkDTO() {
         return new ComponentLinkDTO(
@@ -49,7 +67,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("Admin should create link successfully")
         void adminShouldCreateLink() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = sampleLinkDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -63,7 +80,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when creating link")
         void userShouldGet403WhenCreatingLink() throws Exception {
-            String userToken = testUtils.createUser();
             var dto = sampleLinkDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +105,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("Admin should update link successfully")
         void adminShouldUpdateLink() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = sampleLinkDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -109,8 +124,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when updating link")
         void userShouldGet403WhenUpdatingLink() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = sampleLinkDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +146,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("Admin should delete link successfully")
         void adminShouldDeleteLink() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = sampleLinkDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -152,8 +164,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when deleting link")
         void userShouldGet403WhenDeletingLink() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = sampleLinkDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -173,8 +183,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("User should get link by ID successfully")
         void userShouldGetLinkById() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = sampleLinkDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -191,7 +199,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when link not found")
         void shouldReturn404WhenNotFound() throws Exception {
-            String userToken = testUtils.createUser();
             mockMvc.perform(get(BASE_URL + "/99999")
                             .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isNotFound());
@@ -211,8 +218,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("User should get all links for a component successfully")
         void userShouldGetAllLinks() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto1 = sampleLinkDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -235,7 +240,6 @@ public class ComponentLinkControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when no links exist for component")
         void shouldReturn404WhenNoLinks() throws Exception {
-            String userToken = testUtils.createUser();
             mockMvc.perform(get(BASE_URL + "/all?componentId=99999&componentType=CPU")
                             .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isNotFound());

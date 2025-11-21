@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.partcraft.back.dto.componentDTO.CPUDTO;
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.integration.helper.TestUtils;
+import com.partcraft.back.repository.UserRepository;
+import com.partcraft.back.repository.component.CPURepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -11,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -23,12 +24,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * This test covers all component controllers that extend ComponentController
  * (CPU, GPU, RAM, Storage, etc.) since they all share the same base functionality.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("Components Controller Integration Tests")
-class ComponentControllerIntegrationTest {
+class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,19 +36,38 @@ class ComponentControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CPURepository cpuRepository;
+
+    @Autowired
     private TestUtils testUtils;
 
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        // Delete components first before users to avoid FK constraint violations
+        cpuRepository.deleteAll();
+        userRepository.deleteAll();
+        adminToken = testUtils.createAdmin();
+        userToken = testUtils.createUser();
+    }
+
     // Using CPU endpoints as representative of all component controllers
+
     private static final String COMPONENT_BASE_URL = "/api/cpu";
 
     @Nested
     @DisplayName("Create component tests")
     class CreateComponentTests {
 
+
         @Test
         @DisplayName("Admin should create component successfully")
         void adminShouldCreateComponent() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var componentDTO = sampleCPUDTO();
 
             mockMvc.perform(post(COMPONENT_BASE_URL)
@@ -63,7 +81,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when trying to create component")
         void userShouldGet403WhenCreatingComponent() throws Exception {
-            String userToken = testUtils.createUser();
             var componentDTO = sampleCPUDTO();
 
             mockMvc.perform(post(COMPONENT_BASE_URL)
@@ -92,7 +109,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("Admin should update component successfully")
         void adminShouldUpdateComponent() throws Exception {
-            String adminToken = testUtils.createAdmin();
 
             // Create component first
             var componentDTO = sampleCPUDTO();
@@ -117,8 +133,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when trying to update component")
         void userShouldGet403WhenUpdatingComponent() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
 
             // Create component as admin
             var componentDTO = sampleCPUDTO();
@@ -147,7 +161,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("Admin should delete component successfully")
         void adminShouldDeleteComponent() throws Exception {
-            String adminToken = testUtils.createAdmin();
 
             // Create component first
             var componentDTO = sampleCPUDTO();
@@ -173,8 +186,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when trying to delete component")
         void userShouldGet403WhenDeletingComponent() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
 
             // Create component as admin
             var componentDTO = sampleCPUDTO();
@@ -200,8 +211,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("User should get component by ID successfully")
         void userShouldGetComponentById() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
 
             // Create component as admin
             var componentDTO = sampleCPUDTO();
@@ -223,7 +232,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when component not found")
         void shouldReturn404WhenNotFound() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(get(COMPONENT_BASE_URL + "/99999")
                             .header("Authorization", "Bearer " + userToken))
@@ -245,8 +253,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("User should get all components successfully")
         void userShouldGetAllComponents() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
 
             // Create multiple components
             var component1 = sampleCPUDTO();
@@ -274,7 +280,6 @@ class ComponentControllerIntegrationTest {
         @Test
         @DisplayName("Should return empty list when no components exist")
         void shouldReturnEmptyListWhenNoComponents() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(get(COMPONENT_BASE_URL)
                             .header("Authorization", "Bearer " + userToken))

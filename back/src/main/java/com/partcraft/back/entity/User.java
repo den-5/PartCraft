@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "`user`")
 @Getter
@@ -27,6 +30,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private UserRole role = UserRole.USER;
+
+    // Cascade delete: when a user is deleted, all their PCs are also deleted
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PC> pcs = new ArrayList<>();
 
     public User(String username, String email, String password) {
         this.username = username;

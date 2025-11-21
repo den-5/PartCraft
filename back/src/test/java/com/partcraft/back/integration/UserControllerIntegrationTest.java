@@ -3,6 +3,8 @@ package com.partcraft.back.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.partcraft.back.dto.User.UpdateUserDTO;
 import com.partcraft.back.integration.helper.TestUtils;
+import com.partcraft.back.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,8 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 
@@ -20,12 +20,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("UserController Integration Tests")
-public class UserControllerIntegrationTest {
+public class UserControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -35,16 +33,28 @@ public class UserControllerIntegrationTest {
     @Autowired
     private TestUtils testUtils;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        userRepository.deleteAll();
+        // Create shared users once
+        adminToken = testUtils.createAdmin();
+        userToken = testUtils.createUser();
+    }
+
     @Nested
     @DisplayName("Get user tests")
     class GetUserTests {
         @Test
         @DisplayName("Should return user data")
         void shouldFindUserAndReturn200withValidData() throws Exception {
-            String token = testUtils.createUser();
-
             String response = mockMvc.perform(get("/api/user/")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
@@ -58,7 +68,6 @@ public class UserControllerIntegrationTest {
         @DisplayName("Should return 401 Unauthorized if access token is invalid")
         void shouldReturn401UnauthorizedIfAccessTokenIsInvalid() throws Exception {
             String token = "invalidToken12345";
-            testUtils.createUser();
 
             mockMvc.perform(get("/api/user/")
                             .header("Authorization", "Bearer " + token))
@@ -72,10 +81,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return user data by username")
         void shouldFindUserByUsernameAndReturn200withValidData() throws Exception {
-            String token = testUtils.createUser();
-
             String response = mockMvc.perform(get("/api/user/testuser")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
@@ -87,10 +94,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return BadRequest if user not found")
         void shouldReturnBadRequestIfUserNotFound() throws Exception {
-            String token = testUtils.createUser();
-
             mockMvc.perform(get("/api/user/testuser123")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isNotFound());
         }
     }
@@ -101,12 +106,11 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should update user and return valid data")
         void updateUserShouldReturn200withValidData() throws Exception {
-            String token = testUtils.createUser();
             var newFields = sampleUpdateUserDTO();
 
             var updatedUser = mockMvc.perform(put("/api/user/update-sensitive/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + token)
+                            .header("Authorization", "Bearer " + userToken)
                             .content(objectMapper.writeValueAsString(newFields)))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
@@ -118,13 +122,12 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return 401 BadRequest if new field has wrong format")
         void updateUserShouldReturn401BadRequest() throws Exception {
-            String token = testUtils.createUser();
             var newFields = sampleUpdateUserDTO();
             newFields.setUsername("wr");
 
             mockMvc.perform(put("/api/user/update-sensitive/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + token)
+                            .header("Authorization", "Bearer " + userToken)
                             .content(objectMapper.writeValueAsString(newFields)))
                     .andExpect(status().is(400));
         }
@@ -149,13 +152,11 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should update user and return valid data")
         void updateUserShouldReturn200withValidData() throws Exception {
-            String token = testUtils.createAdmin();
-            testUtils.createUser();
             var newFields = sampleUpdateUserDTO();
 
             var updatedUser = mockMvc.perform(put("/api/user/update-sensitive/testuser")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + token)
+                            .header("Authorization", "Bearer " + adminToken)
                             .content(objectMapper.writeValueAsString(newFields)))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
@@ -167,14 +168,12 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return 400 BadRequest if new field has wrong format")
         void updateUserShouldReturn400BadRequest() throws Exception {
-            String token = testUtils.createAdmin();
-            testUtils.createUser();
             var newFields = sampleUpdateUserDTO();
             newFields.setUsername("wr");
 
             mockMvc.perform(put("/api/user/update-sensitive/testuser")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + token)
+                            .header("Authorization", "Bearer " + adminToken)
                             .content(objectMapper.writeValueAsString(newFields)))
                     .andExpect(status().isBadRequest());
         }
@@ -199,10 +198,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should delete user and return 200")
         void deleteUserShouldReturn200() throws Exception {
-            String token = testUtils.createUser();
-
             mockMvc.perform(delete("/api/user/")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isOk());
         }
 
@@ -223,11 +220,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should delete user and return 200")
         void deleteUserShouldReturn200() throws Exception {
-            String token = testUtils.createAdmin();
-            testUtils.createUser();
-
             mockMvc.perform(delete("/api/user/testuser")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk());
         }
 
@@ -244,10 +238,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Admin should delete own account when calling DELETE /api/user/")
         void deleteUserShouldReturn200WhenAdminDeletesOwnAccount() throws Exception {
-            String token = testUtils.createAdmin();
-
             mockMvc.perform(delete("/api/user/")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk());
         }
     }
@@ -258,16 +250,14 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("should return user data and set an ADMIN role")
         void roleChangeToAdminShouldReturn200() throws Exception {
-            String token = testUtils.createAdmin();
-            testUtils.createUser();
 
             String response = mockMvc.perform(put("/api/user/role?role=ADMIN&username=testuser")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
-            String role = mockMvc.perform(get("/api/user/role/testuser")
-                            .header("Authorization", "Bearer " + token))
+            String role = mockMvc.perform(get("/api/user/role/")
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
@@ -279,16 +269,13 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("should return user data and set a USER Role")
         void roleChangeToUserShouldReturn200() throws Exception {
-            String token = testUtils.createAdmin();
-            testUtils.createUser();
-
             String response = mockMvc.perform(put("/api/user/role?role=USER&username=admin")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
             String role = mockMvc.perform(get("/api/user/role/")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
@@ -300,9 +287,8 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("should return 500 forbidden if accessed not by admin")
         void shouldReturn500IfNotAdmin() throws Exception {
-            String token = testUtils.createUser();
             mockMvc.perform(put("/api/user/role?role=ADMIN&username=testuser")
-                            .header("Authorization", "Bearer " + token))
+                            .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isForbidden());
         }
     }
@@ -313,9 +299,6 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return user role by username")
         void shouldReturnUserRoleByUsername() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            testUtils.createUser();
-
             String response = mockMvc.perform(get("/api/user/role/testuser")
                             .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
@@ -327,7 +310,6 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return current user role if username is blank")
         void shouldReturnCurrentUserRoleIfUsernameIsBlank() throws Exception {
-            String userToken = testUtils.createUser();
 
             String response = mockMvc.perform(get("/api/user/role/")
                             .header("Authorization", "Bearer " + userToken))
@@ -348,7 +330,6 @@ public class UserControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 if user not found")
         void shouldReturn404IfUserNotFound() throws Exception {
-            String adminToken = testUtils.createAdmin();
 
             mockMvc.perform(get("/api/user/role/unknownuser")
                             .header("Authorization", "Bearer " + adminToken))

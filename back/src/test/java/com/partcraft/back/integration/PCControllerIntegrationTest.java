@@ -5,6 +5,9 @@ import com.partcraft.back.dto.PC.CreatePCDTO;
 import com.partcraft.back.dto.PC.UpdatePCDTO;
 import com.partcraft.back.integration.helper.TestUtils;
 import com.partcraft.back.enums.VisibilityState;
+import com.partcraft.back.repository.PCRepository;
+import com.partcraft.back.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,8 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -24,12 +25,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("PC controller integration tests")
-public class PCControllerIntegrationTest {
+public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,7 +39,26 @@ public class PCControllerIntegrationTest {
     @Autowired
     private TestUtils testUtils;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PCRepository pcRepository;
+
     private static final String PC_BASE_URL = "/api/pc";
+
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        // Delete PCs first (child) before Users (parent) to avoid FK constraint violations
+        pcRepository.deleteAll();
+        userRepository.deleteAll();
+        // Create shared users once
+        adminToken = testUtils.createAdmin();
+        userToken = testUtils.createUser();
+    }
 
     @Nested
     @DisplayName("Create PC tests")
@@ -49,7 +67,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("User should create PC successfully")
         void userShouldCreatePC() throws Exception {
-            String userToken = testUtils.createUser();
             var createPCDTO = sampleCreatePCDTO();
 
             String response = mockMvc.perform(post(PC_BASE_URL + "/")
@@ -70,7 +87,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Admin should create PC successfully")
         void adminShouldCreatePC() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var createPCDTO = sampleCreatePCDTO();
 
             mockMvc.perform(post(PC_BASE_URL + "/")
@@ -100,7 +116,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("User should get PC by ID successfully")
         void userShouldGetPCById() throws Exception {
-            String userToken = testUtils.createUser();
             var createPCDTO = sampleCreatePCDTO();
 
             // Create PC first
@@ -123,7 +138,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when PC not found")
         void shouldReturn404WhenPCNotFound() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(get(PC_BASE_URL + "/99999")
                             .header("Authorization", "Bearer " + userToken))
@@ -145,7 +159,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should get all user's PCs successfully")
         void shouldGetAllUserPCs() throws Exception {
-            String userToken = testUtils.createUser();
 
             // Create multiple PCs
             var pc1 = sampleCreatePCDTO();
@@ -174,7 +187,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when user not found")
         void shouldReturn404WhenUserNotFound() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(get(PC_BASE_URL + "/user/nonexistentuser")
                             .header("Authorization", "Bearer " + userToken))
@@ -184,7 +196,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 200 and empty array when user has no PCs")
         void shouldReturn200WithEmptyArrayWhenUserHasNoPCs() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(get(PC_BASE_URL + "/user/testuser")
                             .header("Authorization", "Bearer " + userToken))
@@ -207,7 +218,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("User should update own PC fields successfully")
         void userShouldUpdateOwnPCFields() throws Exception {
-            String userToken = testUtils.createUser();
             var createPCDTO = sampleCreatePCDTO();
 
             // Create PC
@@ -238,7 +248,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when PC not found")
         void shouldReturn404WhenPCNotFound() throws Exception {
-            String userToken = testUtils.createUser();
             var updateDTO = sampleUpdatePCDTO();
 
             mockMvc.perform(put(PC_BASE_URL + "/update-fields/99999")
@@ -267,7 +276,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("User should update own PC components successfully")
         void userShouldUpdateOwnPCComponents() throws Exception {
-            String userToken = testUtils.createUser();
             var createPCDTO = sampleCreatePCDTO();
 
             // Create PC
@@ -292,7 +300,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when PC not found")
         void shouldReturn404WhenPCNotFound() throws Exception {
-            String userToken = testUtils.createUser();
             var updateDTO = sampleUpdatePCDTO();
 
             mockMvc.perform(put(PC_BASE_URL + "/update-components/99999")
@@ -321,7 +328,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("User should delete own PC successfully")
         void userShouldDeleteOwnPC() throws Exception {
-            String userToken = testUtils.createUser();
             var createPCDTO = sampleCreatePCDTO();
 
             // Create PC
@@ -347,7 +353,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when PC not found")
         void shouldReturn404WhenPCNotFound() throws Exception {
-            String userToken = testUtils.createUser();
 
             mockMvc.perform(delete(PC_BASE_URL + "/99999")
                             .header("Authorization", "Bearer " + userToken))
@@ -368,7 +373,6 @@ public class PCControllerIntegrationTest {
         @Test
         @DisplayName("Should return error when CPU and motherboard are incompatible")
         void shouldReturnErrorForIncompatibleCpuMotherboard() throws Exception {
-            String userToken = testUtils.createUser();
             // Create incompatible CPU and motherboard in the test DB
             Long cpuId = testUtils.createCpu("LGA1151");
             Long motherboardId = testUtils.createMotherboard("AM4");

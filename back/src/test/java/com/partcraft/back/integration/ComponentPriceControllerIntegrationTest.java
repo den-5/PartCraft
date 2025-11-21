@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.partcraft.back.dto.ComponentPriceDTO;
 import com.partcraft.back.enums.Location;
 import com.partcraft.back.integration.helper.TestUtils;
+import com.partcraft.back.repository.ComponentPriceRepository;
+import com.partcraft.back.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -11,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -20,12 +21,10 @@ import java.time.LocalDate;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("ComponentPriceController Integration Tests")
-public class ComponentPriceControllerIntegrationTest {
+public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -35,7 +34,26 @@ public class ComponentPriceControllerIntegrationTest {
     @Autowired
     private TestUtils testUtils;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ComponentPriceRepository componentPriceRepository;
+
     private static final String BASE_URL = "/api/component/price";
+
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        // Delete component prices first before users to avoid FK constraint violations
+        componentPriceRepository.deleteAll();
+        userRepository.deleteAll();
+        // Create shared users once
+        adminToken = testUtils.createAdmin();
+        userToken = testUtils.createUser();
+    }
 
     private ComponentPriceDTO samplePriceDTO() {
         return new ComponentPriceDTO(
@@ -54,7 +72,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("Admin should create price successfully")
         void adminShouldCreatePrice() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -68,7 +85,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when creating price")
         void userShouldGet403WhenCreatingPrice() throws Exception {
-            String userToken = testUtils.createUser();
             var dto = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -94,7 +110,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("Admin should update price successfully")
         void adminShouldUpdatePrice() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -114,8 +129,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when updating price")
         void userShouldGet403WhenUpdatingPrice() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +151,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("Admin should delete price successfully")
         void adminShouldDeletePrice() throws Exception {
-            String adminToken = testUtils.createAdmin();
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -157,8 +169,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("User should get 403 Forbidden when deleting price")
         void userShouldGet403WhenDeletingPrice() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -178,8 +188,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("User should get price by ID successfully")
         void userShouldGetPriceById() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -196,7 +204,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when price not found")
         void shouldReturn404WhenNotFound() throws Exception {
-            String userToken = testUtils.createUser();
             mockMvc.perform(get(BASE_URL + "/99999")
                             .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isNotFound());
@@ -216,8 +223,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("User should get all prices for a component successfully")
         void userShouldGetAllPrices() throws Exception {
-            String adminToken = testUtils.createAdmin();
-            String userToken = testUtils.createUser();
             var dto1 = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -241,7 +246,6 @@ public class ComponentPriceControllerIntegrationTest {
         @Test
         @DisplayName("Should return 404 when no prices exist for component")
         void shouldReturn404WhenNoPrices() throws Exception {
-            String userToken = testUtils.createUser();
             mockMvc.perform(get(BASE_URL + "/history?componentId=99999&componentType=CPU")
                             .header("Authorization", "Bearer " + userToken))
                     .andExpect(status().isNotFound());
