@@ -44,6 +44,7 @@ public class AuthController {
         }
         return ResponseEntity.ok(authResponseDTO);
     }
+    //test pipeline
 
     @PostMapping("/sign-up")
     public ResponseEntity<AuthResponseDTO> signUp(@RequestBody CreateUserDTO request) {
