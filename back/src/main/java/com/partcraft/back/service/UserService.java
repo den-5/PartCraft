@@ -59,7 +59,7 @@ public class UserService {
         var user = userRepository.findUserByUsername(username).orElse(null);
         if (user == null) throw new NotFoundException("User with username " + username + " not found");
 
-        refreshTokenRepository.deleteAllByUser(user);
+        refreshTokenRepository.deleteByUserId(user.getId());
         userRepository.delete(user);
     }
 

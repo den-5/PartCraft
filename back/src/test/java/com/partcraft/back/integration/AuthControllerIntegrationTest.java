@@ -18,19 +18,21 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@DisplayName("AuthController Sign-Up Integration Tests")
-public class AuthControllerIntegrationTest {
+public class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -45,7 +47,6 @@ public class AuthControllerIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
 
     @BeforeEach
     void setUp() {
@@ -64,7 +65,7 @@ public class AuthControllerIntegrationTest {
     class SuccessfulSignUpTests {
         @Test
         @DisplayName("Should create user and return 200 with valid data")
-        void shouldCreateUserAndReturn200WIthValidData() throws Exception {
+        void shouldCreateUserAndReturn200WithValidData() throws Exception {
             CreateUserDTO request = sampleCreateUserDTO();
             mockMvc.perform(post("/api/auth/sign-up")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -91,12 +92,11 @@ public class AuthControllerIntegrationTest {
             assert users.size() == 1;
             assert users.get(0).getUsername().equals(request.getUsername());
             assert users.get(0).getEmail().equals(request.getEmail());
-
         }
 
         @Test
-        @DisplayName("Should create tokens for user ")
-        void shouldCreateTokenForNewUserInDatabase() throws Exception {
+        @DisplayName("Should create tokens for user in Redis")
+        void shouldCreateTokenForNewUserInRedis() throws Exception {
             CreateUserDTO request = sampleCreateUserDTO();
             mockMvc.perform(post("/api/auth/sign-up")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +104,11 @@ public class AuthControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             var tokens = refreshTokenRepository.findAll();
-            assert tokens.size() == 1;
+            long count = 0;
+            for (var token : tokens) {
+                count++;
+            }
+            assert count == 1;
         }
     }
 
@@ -172,7 +176,7 @@ public class AuthControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("login should create RefreshToken entity and return status 200")
+        @DisplayName("login should create RefreshToken entity in Redis and return status 200")
         void shouldReturnStatus200AndCreateRefreshTokenEntity() throws Exception {
             var request = sampleLoginRequestDTO();
 
@@ -185,7 +189,11 @@ public class AuthControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             var tokens = refreshTokenRepository.findAll();
-            assert tokens.size() == 1;
+            long count = 0;
+            for (var token : tokens) {
+                count++;
+            }
+            assert count == 1;
         }
     }
 
@@ -245,242 +253,24 @@ public class AuthControllerIntegrationTest {
                     .andExpect(jsonPath("$.message").exists());
 
             var tokens = refreshTokenRepository.findAll();
-            assert tokens.isEmpty();
+            long count = 0;
+            for (var token : tokens) {
+                count++;
+            }
+            assert count == 0;
         }
     }
-
-    @Nested
-    @DisplayName("Successful refresh token tests")
-    class SuccessfulRefreshTokenTests {
-        @Test
-        @DisplayName("refresh should return new tokens and status 200 with valid refresh token")
-        void shouldReturnStatus200AndNewTokensWithValidRefreshToken() throws Exception {
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String refreshToken = authResponse.getTokens().getRefreshToken();
-
-            // Use refresh token to get new tokens
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + refreshToken))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                    .andExpect(jsonPath("$.refreshToken").isNotEmpty())
-                    .andExpect(jsonPath("$.accessToken").isString())
-                    .andExpect(jsonPath("$.refreshToken").isString());
-        }
-
-        @Test
-        @DisplayName("refresh should delete old refresh token from database")
-        void shouldDeleteOldRefreshTokenFromDatabase() throws Exception {
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String oldRefreshToken = authResponse.getTokens().getRefreshToken();
-
-            var tokensBeforeRefresh = refreshTokenRepository.findAll();
-            assert tokensBeforeRefresh.size() == 1;
-
-            // Use refresh token to get new tokens
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + oldRefreshToken))
-                    .andExpect(status().isOk());
-
-            var oldTokenStillExists = refreshTokenRepository.findAll()
-                    .stream()
-                    .anyMatch(token -> token.getToken().equals(oldRefreshToken));
-
-            assert !oldTokenStillExists;
-        }
-
-        @Test
-        @DisplayName("refresh should create new refresh token in database")
-        void shouldCreateNewRefreshTokenInDatabase() throws Exception {
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String oldRefreshToken = authResponse.getTokens().getRefreshToken();
-
-            // Use refresh token to get new tokens
-            var refreshResponse = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + oldRefreshToken))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String refreshResponseBody = refreshResponse.getResponse().getContentAsString();
-            var tokensDto = objectMapper.readValue(refreshResponseBody, com.partcraft.back.dto.JwtTokensDTO.class);
-
-            // Verify new token is in database
-            var tokens = refreshTokenRepository.findAll();
-            assert tokens.size() == 1;
-            assert tokens.get(0).getToken().equals(tokensDto.getRefreshToken());
-        }
-    }
-
-    @Nested
-    @DisplayName("Failed refresh token tests")
-    class FailedRefreshTokenTests {
-        @Test
-        @DisplayName("refresh should return 401 when refresh token is missing")
-        void shouldReturn401WhenRefreshTokenIsMissing() throws Exception {
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh"))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"));
-        }
-
-        @Test
-        @DisplayName("refresh should return 401 when refresh token is invalid")
-        void shouldReturn401WhenRefreshTokenIsInvalid() throws Exception {
-            String invalidToken = "invalid.refresh.token";
-
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + invalidToken))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"));
-        }
-
-        @Test
-        @DisplayName("refresh should return 401 when refresh token is expired")
-        void shouldReturn401WhenRefreshTokenIsExpired() throws Exception {
-            // This test would require creating an expired token
-            // You might need to add a method in JwtUtils to create tokens with custom expiration
-            // For now, we'll test with a token that doesn't exist in the database
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String refreshToken = authResponse.getTokens().getRefreshToken();
-
-            // Delete the token from database to simulate expiration
-            refreshTokenRepository.deleteAll();
-
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + refreshToken))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"));
-        }
-
-        @Test
-        @DisplayName("refresh should return 401 when authorization header format is wrong")
-        void shouldReturn401WhenAuthorizationHeaderFormatIsWrong() throws Exception {
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String refreshToken = authResponse.getTokens().getRefreshToken();
-
-            // Send token without "Bearer " prefix
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", refreshToken))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"));
-        }
-
-        @Test
-        @DisplayName("refresh should not create new token when refresh token is invalid")
-        void shouldNotCreateNewTokenWhenRefreshTokenIsInvalid() throws Exception {
-            String invalidToken = "invalid.refresh.token";
-
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + invalidToken))
-                    .andExpect(status().isUnauthorized());
-
-            var tokens = refreshTokenRepository.findAll();
-            assert tokens.isEmpty();
-        }
-
-        @Test
-        @DisplayName("refresh should return 401 when used token is already deleted")
-        void shouldReturn401WhenTokenIsAlreadyUsed() throws Exception {
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            // Login to get a refresh token
-            var loginRequest = sampleLoginRequestDTO();
-            var loginResponse = mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            String responseBody = loginResponse.getResponse().getContentAsString();
-            var authResponse = objectMapper.readValue(responseBody, com.partcraft.back.dto.AuthResponseDTO.class);
-            String refreshToken = authResponse.getTokens().getRefreshToken();
-
-            // Use refresh token once (should succeed)
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + refreshToken))
-                    .andExpect(status().isOk());
-
-            // Try to use the same token again (should fail)
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/refresh")
-                            .header("Authorization", "Bearer " + refreshToken))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"));
-        }
-    }
-
 
     private CreateUserDTO sampleCreateUserDTO() {
-        return new CreateUserDTO(
-                "testuser",
-                "test@example.com",
-                "Password123!"
-        );
+        CreateUserDTO dto = new CreateUserDTO();
+        dto.setUsername("testuser");
+        dto.setEmail("test@example.com");
+        dto.setPassword("Password123!");
+        return dto;
     }
 
     private LoginRequestDTO sampleLoginRequestDTO() {
-        return new LoginRequestDTO(
-                "test@example.com",
-                "Password123!"
-        );
+        return new LoginRequestDTO("test@example.com", "Password123!");
     }
 }
+

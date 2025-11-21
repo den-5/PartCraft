@@ -1,8 +1,6 @@
 package com.partcraft.back.unit;
 
 import com.partcraft.back.entity.RefreshToken;
-import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.service.RefreshTokenServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
@@ -21,7 +19,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +35,7 @@ class RefreshTokenServiceTest {
 
     private RefreshTokenService refreshTokenService;
 
-    private User testUser;
+    private Long testUserId;
     private String testToken;
     private long expirationMs;
 
@@ -46,372 +43,201 @@ class RefreshTokenServiceTest {
     void setUp() {
         refreshTokenService = new RefreshTokenService(refreshTokenRepository, jwtUtils, userRepository);
 
-        testUser = new User("testuser", "test@example.com", "password123");
-        testUser.setId(1L);
-        testToken = "test.refresh.token";
+        testUserId = 1L;
+        testToken = "test-refresh-token-uuid";
         expirationMs = 86400000L; // 24 hours
     }
 
     @Nested
-    class CreateRefreshTokenWithUserTests {
+    class CreateRefreshTokenTests {
         @Test
-        void createRefreshToken_shouldReturnToken_whenUserIsValid() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
+        void createRefreshToken_shouldReturnRefreshToken_whenValidInput() {
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            String result = refreshTokenService.createRefreshToken(testUser);
+            RefreshToken result = refreshTokenService.createRefreshToken(testUserId, expirationMs);
 
             assertNotNull(result);
-            assertEquals(testToken, result);
+            assertNotNull(result.getToken());
+            assertEquals(testUserId, result.getUserId());
         }
 
         @Test
         void createRefreshToken_shouldSaveRefreshTokenToRepository() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            refreshTokenService.createRefreshToken(testUser);
+            refreshTokenService.createRefreshToken(testUserId, expirationMs);
 
             ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
             verify(refreshTokenRepository).save(captor.capture());
 
             RefreshToken savedToken = captor.getValue();
-            assertEquals(testToken, savedToken.getToken());
-            assertEquals(testUser, savedToken.getUser());
+            assertNotNull(savedToken.getToken());
+            assertEquals(testUserId, savedToken.getUserId());
             assertNotNull(savedToken.getExpiryDate());
+            assertNotNull(savedToken.getTtl());
         }
 
         @Test
         void createRefreshToken_shouldSetCorrectExpiryDate() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Instant beforeCreation = Instant.now();
-            refreshTokenService.createRefreshToken(testUser);
+            RefreshToken result = refreshTokenService.createRefreshToken(testUserId, expirationMs);
             Instant afterCreation = Instant.now();
 
-            ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
-            verify(refreshTokenRepository).save(captor.capture());
+            Instant expectedMinExpiry = beforeCreation.plusMillis(expirationMs);
+            Instant expectedMaxExpiry = afterCreation.plusMillis(expirationMs);
 
-            RefreshToken savedToken = captor.getValue();
-            Instant expectedMinExpiry = beforeCreation.plusSeconds(expirationMs);
-            Instant expectedMaxExpiry = afterCreation.plusSeconds(expirationMs);
-
-            assertTrue(savedToken.getExpiryDate().isAfter(expectedMinExpiry.minusSeconds(1)));
-            assertTrue(savedToken.getExpiryDate().isBefore(expectedMaxExpiry.plusSeconds(1)));
+            assertTrue(result.getExpiryDate().isAfter(expectedMinExpiry.minusSeconds(1)));
+            assertTrue(result.getExpiryDate().isBefore(expectedMaxExpiry.plusSeconds(1)));
         }
 
         @Test
-        void createRefreshToken_shouldThrowException_whenJwtUtilsThrowsException() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenThrow(new RuntimeException("JWT generation failed"));
-
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(testUser))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Refresh token creation failed");
-        }
-
-        @Test
-        void createRefreshToken_shouldThrowException_whenRepositorySaveFails() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenThrow(new RuntimeException("Database error"));
-
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(testUser))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Refresh token creation failed");
-        }
-
-        @Test
-        void createRefreshToken_shouldGenerateTokenWithUsername() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
+        void createRefreshToken_shouldGenerateUniqueToken() {
             when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            refreshTokenService.createRefreshToken(testUser);
+            RefreshToken token1 = refreshTokenService.createRefreshToken(testUserId, expirationMs);
+            RefreshToken token2 = refreshTokenService.createRefreshToken(testUserId, expirationMs);
 
-            verify(jwtUtils).generateRefreshToken(testUser.getUsername());
+            assertNotNull(token1.getToken());
+            assertNotNull(token2.getToken());
+            assertNotEquals(token1.getToken(), token2.getToken());
+        }
+
+        @Test
+        void createRefreshToken_shouldCalculateTTL() {
+            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            RefreshToken result = refreshTokenService.createRefreshToken(testUserId, expirationMs);
+
+            assertNotNull(result.getTtl());
+            assertTrue(result.getTtl() > 0);
+            // TTL should be roughly equal to expirationMs in seconds (within a small margin)
+            long expectedTtl = expirationMs / 1000;
+            assertTrue(result.getTtl() >= expectedTtl - 2 && result.getTtl() <= expectedTtl + 2);
         }
     }
 
     @Nested
-    class CreateRefreshTokenWithUsernameTests {
+    class FindByTokenTests {
         @Test
-        void createRefreshToken_shouldReturnToken_whenUsernameIsValid() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            String result = refreshTokenService.createRefreshToken(testUser.getUsername());
-
-            assertNotNull(result);
-            assertEquals(testToken, result);
-        }
-
-        @Test
-        void createRefreshToken_shouldFindUserByUsername() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            refreshTokenService.createRefreshToken(testUser.getUsername());
-
-            verify(userRepository).findUserByUsername(testUser.getUsername());
-        }
-
-        @Test
-        void createRefreshToken_shouldThrowException_whenUserNotFound() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(testUser.getUsername()))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Refresh token creation failed");
-        }
-
-        @Test
-        void createRefreshToken_shouldSaveRefreshTokenWithFoundUser() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            refreshTokenService.createRefreshToken(testUser.getUsername());
-
-            ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
-            verify(refreshTokenRepository).save(captor.capture());
-
-            RefreshToken savedToken = captor.getValue();
-            assertEquals(testUser, savedToken.getUser());
-            assertEquals(testToken, savedToken.getToken());
-        }
-
-        @Test
-        void createRefreshToken_shouldThrowException_whenJwtGenerationFails() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenThrow(new RuntimeException("JWT error"));
-
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(testUser.getUsername()))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Refresh token creation failed");
-        }
-
-        @Test
-        void createRefreshToken_shouldThrowException_whenRepositorySaveFails() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenThrow(new RuntimeException("DB error"));
-
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(testUser.getUsername()))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Refresh token creation failed");
-        }
-    }
-
-    @Nested
-    class IsRefreshTokenValidTests {
-        @Test
-        void isRefreshTokenValid_shouldReturnTrue_whenTokenIsValidAndExists() {
-            RefreshToken refreshToken = new RefreshToken(testToken, testUser, Instant.now().plusSeconds(3600));
-
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
+        void findByToken_shouldReturnToken_whenTokenExists() {
+            RefreshToken refreshToken = new RefreshToken(testToken, testUserId, Instant.now().plusSeconds(3600));
             when(refreshTokenRepository.findByToken(testToken)).thenReturn(Optional.of(refreshToken));
 
-            boolean result = refreshTokenService.isRefreshTokenValid(testToken);
+            Optional<RefreshToken> result = refreshTokenService.findByToken(testToken);
 
-            assertTrue(result);
+            assertTrue(result.isPresent());
+            assertEquals(testToken, result.get().getToken());
+            assertEquals(testUserId, result.get().getUserId());
         }
 
         @Test
-        void isRefreshTokenValid_shouldReturnFalse_whenTokenIsInvalid() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(false);
-
-            boolean result = refreshTokenService.isRefreshTokenValid(testToken);
-
-            assertFalse(result);
-            verify(refreshTokenRepository, never()).findByToken(anyString());
-        }
-
-        @Test
-        void isRefreshTokenValid_shouldReturnFalse_whenTokenNotFoundInRepository() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
+        void findByToken_shouldReturnEmpty_whenTokenDoesNotExist() {
             when(refreshTokenRepository.findByToken(testToken)).thenReturn(Optional.empty());
 
-            boolean result = refreshTokenService.isRefreshTokenValid(testToken);
+            Optional<RefreshToken> result = refreshTokenService.findByToken(testToken);
 
-            assertFalse(result);
+            assertFalse(result.isPresent());
         }
 
         @Test
-        void isRefreshTokenValid_shouldCallJwtUtilsValidation() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
+        void findByToken_shouldCallRepository() {
             when(refreshTokenRepository.findByToken(testToken)).thenReturn(Optional.empty());
 
-            refreshTokenService.isRefreshTokenValid(testToken);
-
-            verify(jwtUtils).validateRefreshToken(testToken);
-        }
-
-        @Test
-        void isRefreshTokenValid_shouldCallRepositoryFindByToken_whenJwtIsValid() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
-            when(refreshTokenRepository.findByToken(testToken)).thenReturn(Optional.empty());
-
-            refreshTokenService.isRefreshTokenValid(testToken);
+            refreshTokenService.findByToken(testToken);
 
             verify(refreshTokenRepository).findByToken(testToken);
         }
     }
 
     @Nested
-    class DeleteRefreshTokenTests {
+    class VerifyExpirationTests {
         @Test
-        void deleteRefreshToken_shouldDeleteToken_whenTokenIsValid() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
-            doNothing().when(refreshTokenRepository).deleteByToken(testToken);
+        void verifyExpiration_shouldReturnToken_whenTokenIsNotExpired() {
+            RefreshToken refreshToken = new RefreshToken(testToken, testUserId, Instant.now().plusSeconds(3600));
 
-            assertDoesNotThrow(() -> refreshTokenService.deleteRefreshToken(testToken));
+            RefreshToken result = refreshTokenService.verifyExpiration(refreshToken);
 
-            verify(refreshTokenRepository).deleteByToken(testToken);
+            assertNotNull(result);
+            assertEquals(refreshToken, result);
+            verify(refreshTokenRepository, never()).delete(any());
         }
 
         @Test
-        void deleteRefreshToken_shouldNotDeleteToken_whenTokenIsInvalid() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(false);
+        void verifyExpiration_shouldThrowException_whenTokenIsExpired() {
+            RefreshToken refreshToken = new RefreshToken(testToken, testUserId, Instant.now().minusSeconds(3600));
+            doNothing().when(refreshTokenRepository).delete(refreshToken);
 
-            assertDoesNotThrow(() -> refreshTokenService.deleteRefreshToken(testToken));
-
-            verify(refreshTokenRepository, never()).deleteByToken(anyString());
+            assertThatThrownBy(() -> refreshTokenService.verifyExpiration(refreshToken))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Refresh token expired");
         }
 
         @Test
-        void deleteRefreshToken_shouldValidateTokenBeforeDeleting() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
-            doNothing().when(refreshTokenRepository).deleteByToken(testToken);
+        void verifyExpiration_shouldDeleteToken_whenTokenIsExpired() {
+            RefreshToken refreshToken = new RefreshToken(testToken, testUserId, Instant.now().minusSeconds(3600));
+            doNothing().when(refreshTokenRepository).delete(refreshToken);
 
-            refreshTokenService.deleteRefreshToken(testToken);
+            try {
+                refreshTokenService.verifyExpiration(refreshToken);
+            } catch (RuntimeException e) {
+                // Expected
+            }
 
-            verify(jwtUtils).validateRefreshToken(testToken);
+            verify(refreshTokenRepository).delete(refreshToken);
         }
 
         @Test
-        void deleteRefreshToken_shouldThrowException_whenRepositoryDeleteFails() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
-            doThrow(new RuntimeException("Delete failed")).when(refreshTokenRepository).deleteByToken(testToken);
+        void verifyExpiration_shouldNotDeleteToken_whenTokenIsValid() {
+            RefreshToken refreshToken = new RefreshToken(testToken, testUserId, Instant.now().plusSeconds(3600));
 
-            assertThatThrownBy(() -> refreshTokenService.deleteRefreshToken(testToken))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Failed to delete refresh token");
-        }
+            refreshTokenService.verifyExpiration(refreshToken);
 
-        @Test
-        void deleteRefreshToken_shouldThrowException_whenValidationFails() {
-            when(jwtUtils.validateRefreshToken(testToken)).thenThrow(new RuntimeException("Validation error"));
-
-            assertThatThrownBy(() -> refreshTokenService.deleteRefreshToken(testToken))
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Failed to delete refresh token");
+            verify(refreshTokenRepository, never()).delete(any());
         }
     }
 
     @Nested
-    class DeleteExpiredTokensTests {
+    class DeleteTokenTests {
         @Test
-        void deleteExpiredTokens_shouldCallRepositoryDeleteByExpiryDateBefore() {
-            doNothing().when(refreshTokenRepository).deleteByExpiryDateBefore(any(Instant.class));
+        void deleteToken_shouldDeleteTokenById() {
+            doNothing().when(refreshTokenRepository).deleteById(testToken);
 
-            assertDoesNotThrow(() -> refreshTokenService.deleteExpiredTokens());
+            assertDoesNotThrow(() -> refreshTokenService.deleteToken(testToken));
 
-            verify(refreshTokenRepository).deleteByExpiryDateBefore(any(Instant.class));
+            verify(refreshTokenRepository).deleteById(testToken);
         }
 
         @Test
-        void deleteExpiredTokens_shouldPassCurrentTimeToRepository() {
-            ArgumentCaptor<Instant> instantCaptor = ArgumentCaptor.forClass(Instant.class);
-            doNothing().when(refreshTokenRepository).deleteByExpiryDateBefore(instantCaptor.capture());
+        void deleteToken_shouldCallRepositoryDeleteById() {
+            doNothing().when(refreshTokenRepository).deleteById(testToken);
 
-            Instant beforeCall = Instant.now();
-            refreshTokenService.deleteExpiredTokens();
-            Instant afterCall = Instant.now();
+            refreshTokenService.deleteToken(testToken);
 
-            Instant capturedInstant = instantCaptor.getValue();
-            assertTrue(capturedInstant.isAfter(beforeCall.minusSeconds(1)));
-            assertTrue(capturedInstant.isBefore(afterCall.plusSeconds(1)));
-        }
-
-        @Test
-        void deleteExpiredTokens_shouldThrowException_whenRepositoryDeleteFails() {
-            doThrow(new RuntimeException("Database error")).when(refreshTokenRepository).deleteByExpiryDateBefore(any(Instant.class));
-
-            assertThatThrownBy(() -> refreshTokenService.deleteExpiredTokens())
-                    .isInstanceOf(RefreshTokenServiceException.class)
-                    .hasMessageContaining("Failed to delete expired refresh tokens");
-        }
-
-        @Test
-        void deleteExpiredTokens_shouldNotThrowException_whenDeletionSucceeds() {
-            doNothing().when(refreshTokenRepository).deleteByExpiryDateBefore(any(Instant.class));
-
-            assertDoesNotThrow(() -> refreshTokenService.deleteExpiredTokens());
-        }
-
-        @Test
-        void deleteExpiredTokens_shouldCallRepositoryExactlyOnce() {
-            doNothing().when(refreshTokenRepository).deleteByExpiryDateBefore(any(Instant.class));
-
-            refreshTokenService.deleteExpiredTokens();
-
-            verify(refreshTokenRepository, times(1)).deleteByExpiryDateBefore(any(Instant.class));
+            verify(refreshTokenRepository, times(1)).deleteById(testToken);
         }
     }
 
     @Nested
-    class IntegrationBehaviorTests {
+    class DeleteByUserIdTests {
         @Test
-        void service_shouldHandleMultipleTokenCreationsForSameUser() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        void deleteByUserId_shouldCallRepositoryDeleteByUserId() {
+            doNothing().when(refreshTokenRepository).deleteByUserId(testUserId);
 
-            String token1 = refreshTokenService.createRefreshToken(testUser);
-            String token2 = refreshTokenService.createRefreshToken(testUser);
+            assertDoesNotThrow(() -> refreshTokenService.deleteByUserId(testUserId));
 
-            assertNotNull(token1);
-            assertNotNull(token2);
-            verify(refreshTokenRepository, times(2)).save(any(RefreshToken.class));
+            verify(refreshTokenRepository).deleteByUserId(testUserId);
         }
 
         @Test
-        void service_shouldAllowDeletingRecentlyCreatedToken() {
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtUtils.validateRefreshToken(testToken)).thenReturn(true);
-            doNothing().when(refreshTokenRepository).deleteByToken(testToken);
+        void deleteByUserId_shouldDeleteAllTokensForUser() {
+            doNothing().when(refreshTokenRepository).deleteByUserId(testUserId);
 
-            String token = refreshTokenService.createRefreshToken(testUser);
-            assertDoesNotThrow(() -> refreshTokenService.deleteRefreshToken(token));
+            refreshTokenService.deleteByUserId(testUserId);
 
-            verify(refreshTokenRepository).deleteByToken(testToken);
-        }
-
-        @Test
-        void service_shouldHandleUserLookupAndTokenCreation() {
-            when(userRepository.findUserByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-            when(jwtUtils.generateRefreshToken(testUser.getUsername())).thenReturn(testToken);
-            when(jwtUtils.getRefreshTokenExpirationInMs()).thenReturn(expirationMs);
-            when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            String token = refreshTokenService.createRefreshToken(testUser.getUsername());
-
-            assertNotNull(token);
-            verify(userRepository).findUserByUsername(testUser.getUsername());
-            verify(jwtUtils).generateRefreshToken(testUser.getUsername());
-            verify(refreshTokenRepository).save(any(RefreshToken.class));
+            verify(refreshTokenRepository, times(1)).deleteByUserId(testUserId);
         }
     }
 }
+

@@ -1,38 +1,38 @@
 package com.partcraft.back.entity;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
-@Entity
+@RedisHash("refresh_tokens")
 @NoArgsConstructor
 @Getter
 @Setter
 public class RefreshToken {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false,  unique = true)
     private String token;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "user_id")
-    private User user;
+    private Long userId;
 
-    @Column(nullable = false)
     private Instant expiryDate;
 
-    public boolean isExpired(){
+    @TimeToLive(unit = TimeUnit.SECONDS)
+    private Long ttl;
+
+    public boolean isExpired() {
         return expiryDate.isBefore(Instant.now());
     }
 
-    public RefreshToken (String token, User user, Instant expiryDate){
+    public RefreshToken(String token, Long userId, Instant expiryDate) {
         this.token = token;
-        this.user = user;
+        this.userId = userId;
         this.expiryDate = expiryDate;
+        this.ttl = expiryDate.getEpochSecond() - Instant.now().getEpochSecond();
     }
 }

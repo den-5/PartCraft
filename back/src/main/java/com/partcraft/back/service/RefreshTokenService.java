@@ -2,13 +2,15 @@ package com.partcraft.back.service;
 
 import com.partcraft.back.entity.RefreshToken;
 import com.partcraft.back.entity.User;
-import com.partcraft.back.exception.service.RefreshTokenServiceException;
 import com.partcraft.back.repository.RefreshTokenRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.security.JwtUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class RefreshTokenService {
@@ -16,66 +18,70 @@ public class RefreshTokenService {
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
 
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, JwtUtils jwtUtils,
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
+                               JwtUtils jwtUtils,
                                UserRepository userRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtils = jwtUtils;
         this.userRepository = userRepository;
     }
 
+    public RefreshToken createRefreshToken(Long userId, long expirationMs) {
+        String token = UUID.randomUUID().toString();
+        Instant expiryDate = Instant.now().plusMillis(expirationMs);
+
+        RefreshToken refreshToken = new RefreshToken(token, userId, expiryDate);
+        return refreshTokenRepository.save(refreshToken);
+    }
+
+    // Backward-compatible method for creating refresh token with User entity
     public String createRefreshToken(User user) {
-        try {
-            String token = jwtUtils.generateRefreshToken(user.getUsername());
-            Instant expiryDate = Instant.now().plusSeconds(jwtUtils.getRefreshTokenExpirationInMs());
+        String token = jwtUtils.generateRefreshToken(user.getUsername());
+        Instant expiryDate = Instant.now().plusMillis(jwtUtils.getRefreshTokenExpirationInMs());
 
-            var refreshToken = new RefreshToken(token, user, expiryDate);
-            refreshTokenRepository.save(refreshToken);
-            return refreshToken.getToken();
-        } catch (Exception e) {
-            throw new RefreshTokenServiceException("Refresh token creation failed: " + e.getMessage());
-        }
+        RefreshToken refreshToken = new RefreshToken(token, user.getId(), expiryDate);
+        refreshTokenRepository.save(refreshToken);
+        return token;
     }
 
+    // Backward-compatible method for creating refresh token with username
     public String createRefreshToken(String username) {
-        try {
-            var user = userRepository.findUserByUsername(username).orElse(null);
-            if (user == null) {
-                throw new RuntimeException("User not found");
-            }
-
-            String token = jwtUtils.generateRefreshToken(user.getUsername());
-            Instant expiryDate = Instant.now().plusSeconds(jwtUtils.getRefreshTokenExpirationInMs());
-
-            var refreshToken = new RefreshToken(token, user, expiryDate);
-            refreshTokenRepository.save(refreshToken);
-            return refreshToken.getToken();
-
-        } catch (Exception e) {
-            throw new RefreshTokenServiceException("Refresh token creation failed: " + e.getMessage());
-        }
+        User user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return createRefreshToken(user);
     }
 
+    // Backward-compatible method for validating refresh token
     public boolean isRefreshTokenValid(String refreshToken) {
-        return jwtUtils.validateRefreshToken(refreshToken) && refreshTokenRepository.findByToken(refreshToken).isPresent();
+        return jwtUtils.validateRefreshToken(refreshToken) &&
+                refreshTokenRepository.findByToken(refreshToken).isPresent();
     }
 
-    public void deleteRefreshToken(String refreshToken) throws RefreshTokenServiceException {
-        try {
-            if (jwtUtils.validateRefreshToken(refreshToken)) {
-                refreshTokenRepository.deleteByToken(refreshToken);
-            }
-        } catch (Exception e) {
-            throw new RefreshTokenServiceException("Failed to delete refresh token: " + e.getMessage());
+    // Backward-compatible method for deleting refresh token
+    public void deleteRefreshToken(String refreshToken) {
+        if (jwtUtils.validateRefreshToken(refreshToken)) {
+            refreshTokenRepository.deleteById(refreshToken);
         }
     }
 
-    public void deleteExpiredTokens() throws RefreshTokenServiceException {
-        try {
-            refreshTokenRepository.deleteByExpiryDateBefore(Instant.now());
-        } catch (Exception e) {
-            throw new RefreshTokenServiceException("Failed to delete expired refresh tokens: " + e.getMessage());
-        }
+    public Optional<RefreshToken> findByToken(String token) {
+        return refreshTokenRepository.findByToken(token);
     }
 
+    @Transactional
+    public void deleteByUserId(Long userId) {
+        refreshTokenRepository.deleteByUserId(userId);
+    }
 
+    public void deleteToken(String token) {
+        refreshTokenRepository.deleteById(token);
+    }
+
+    public RefreshToken verifyExpiration(RefreshToken token) {
+        if (token.isExpired()) {
+            refreshTokenRepository.delete(token);
+            throw new RuntimeException("Refresh token expired");
+        }
+        return token;
+    }
 }

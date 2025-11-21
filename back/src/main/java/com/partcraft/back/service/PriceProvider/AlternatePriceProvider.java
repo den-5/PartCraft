@@ -1,6 +1,5 @@
 package com.partcraft.back.service.PriceProvider;
 
-import com.partcraft.back.service.PriceProvider.PriceProvider;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -22,18 +21,28 @@ public class AlternatePriceProvider implements PriceProvider {
                     .timeout(8000)
                     .get();
 
-            // meta tag is the most stable
-            Element priceMeta = doc.selectFirst("meta[itemprop=price]");
+            Element priceElement = doc.selectFirst("span.price");
 
-            if (priceMeta == null) {
-                throw new RuntimeException("Price meta not found");
+            if (priceElement == null) {
+                throw new RuntimeException("Price element not found");
             }
 
-            String rawValue = priceMeta.attr("content"); // "299.00"
+            String rawValue = priceElement.text();
 
-            return Double.parseDouble(rawValue);
+            // Clean the price: remove "€" and spaces, replace comma with dot
+            String cleanedPrice = rawValue
+                    .replace("€", "")
+                    .replace(" ", "")
+                    .replace(",", ".")
+                    .trim();
+
+            return Double.parseDouble(cleanedPrice);
+
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid price format", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch price from Alternate", e);
         }
     }
+
 }
