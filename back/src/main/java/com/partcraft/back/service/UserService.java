@@ -49,9 +49,7 @@ public class UserService {
                 createUserDTO.getEmail(),
                 passwordEncoder.encode(createUserDTO.getPassword()));
         userRepository.save(user);
-        String refreshToken = refreshTokenService.createRefreshToken(user);
-        String accessToken = jwtUtils.generateToken(user.getUsername());
-        return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
+        return generateTokensForUser(user);
     }
 
 
@@ -76,9 +74,7 @@ public class UserService {
         var user = userRepository.findUserByEmail(email).orElse(null);
         if (user == null) throw new NotFoundException("User with email " + email + " not found");
 
-        String refreshToken = refreshTokenService.createRefreshToken(user);
-        String accessToken = jwtUtils.generateToken(user.getUsername());
-        return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
+        return generateTokensForUser(user);
     }
 
     public UserDTO updateUserRole(String username, UserRole role) {
@@ -142,5 +138,44 @@ public class UserService {
 
         userRepository.save(user);
         return new UserDTO(user);
+    }
+
+    // Google OAuth2: Find or create user by Google ID, update email if needed
+    public User findOrCreateGoogleUser(String googleId, String email, String name) {
+        User user = userRepository.findUserByGoogleId(googleId).orElse(null);
+        if (user == null) {
+            user = new User();
+            user.setGoogleId(googleId);
+            user.setEmail(email);
+            user.setUsername(generateUniqueUsername(name));
+            user.setRole(UserRole.USER);
+            userRepository.save(user);
+        } else {
+            if (email != null && !email.equals(user.getEmail())) {
+                user.setEmail(email);
+                userRepository.save(user);
+            }
+        }
+        return user;
+    }
+
+    public AuthResponseDTO generateTokensForUser(User user) {
+        String refreshToken = refreshTokenService.createRefreshToken(user);
+        String accessToken = jwtUtils.generateToken(user.getUsername());
+        return new AuthResponseDTO(new UserDTO(user), new JwtTokensDTO(accessToken, refreshToken));
+    }
+
+    public String generateUniqueUsername(String name) {
+        String base = name.replaceAll("\\s+", "").toLowerCase();
+        if (userRepository.findUserByUsername(base).isEmpty()) {
+            return base;
+        }
+        int uniqueIdentifier = 1;
+        String candidate;
+        do {
+            candidate = base + uniqueIdentifier;
+            uniqueIdentifier++;
+        } while (userRepository.findUserByUsername(candidate).isPresent());
+        return candidate;
     }
 }

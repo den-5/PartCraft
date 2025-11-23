@@ -26,9 +26,14 @@ public class CustomUserDetailsService implements UserDetailsService {
             if (user == null) {
                 throw new UsernameNotFoundException(username);
             }
+            // Allow null password for OAuth2 users
+            String password = user.getPassword();
+            if (user.getGoogleId() != null) {
+                password = password == null ? "" : password; // Spring requires non-null, but will not check password for OAuth2
+            }
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getUsername())
-                    .password(user.getPassword())
+                    .password(password)
                     .roles(String.valueOf(user.getRole()))
                     .build();
         } catch (Exception e) {

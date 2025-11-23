@@ -167,8 +167,11 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <!-- Compiler plugin kept minimal; annotation processor path ensures Lombok works reliably -->

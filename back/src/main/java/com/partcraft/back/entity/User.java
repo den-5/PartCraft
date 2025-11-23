@@ -25,7 +25,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -34,6 +34,9 @@ public class User {
     // Cascade delete: when a user is deleted, all their PCs are also deleted
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PC> pcs = new ArrayList<>();
+
+    @Column(unique = true)
+    private String googleId;
 
     public User(String username, String email, String password) {
         this.username = username;
