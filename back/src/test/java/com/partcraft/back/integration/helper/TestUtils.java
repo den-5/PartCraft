@@ -9,11 +9,14 @@ import com.partcraft.back.enums.UserRole;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.repository.component.CPURepository;
 import com.partcraft.back.repository.component.MotherBoardRepository;
+import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockCookie;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -89,5 +92,49 @@ public class TestUtils {
         mb.setSocketType(socketType);
         mb.setPowerDraw(50);
         return motherBoardRepository.save(mb).getId();
+    }
+
+    public MockCookie createUserAndGetAccessCookie() throws Exception {
+        var request = new CreateUserDTO(
+                "testuser",
+                "test@example.com",
+                "Password123!"
+        );
+        MvcResult result = mockMvc.perform(post("/api/auth/sign-up")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        Cookie[] cookies = result.getResponse().getCookies();
+        for (Cookie c : cookies) {
+            if (c.getName().equals("accessToken")) {
+                return new MockCookie("accessToken", c.getValue());
+            }
+        }
+        throw new RuntimeException("No accessToken cookie found");
+    }
+
+    public MockCookie createAdminAndGetAccessCookie() throws Exception {
+        var request = new CreateUserDTO(
+                "admin",
+                "admin@example.com",
+                "AdminPassword123!"
+        );
+        var admin = new User();
+        admin.setUsername(request.getUsername());
+        admin.setEmail(request.getEmail());
+        admin.setPassword(passwordEncoder.encode(request.getPassword()));
+        admin.setRole(UserRole.ADMIN);
+        userRepository.save(admin);
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        Cookie[] cookies = result.getResponse().getCookies();
+        for (Cookie c : cookies) {
+            if (c.getName().equals("accessToken")) {
+                return new MockCookie("accessToken", c.getValue());
+            }
+        }
+        throw new RuntimeException("No accessToken cookie found");
     }
 }

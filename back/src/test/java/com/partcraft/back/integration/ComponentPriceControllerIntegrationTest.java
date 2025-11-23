@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -42,17 +43,15 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
 
     private static final String BASE_URL = "/api/component/price";
 
-    private String adminToken;
-    private String userToken;
+    private MockCookie adminCookie;
+    private MockCookie userCookie;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Delete component prices first before users to avoid FK constraint violations
         componentPriceRepository.deleteAll();
         userRepository.deleteAll();
-        // Create shared users once
-        adminToken = testUtils.createAdmin();
-        userToken = testUtils.createUser();
+        adminCookie = testUtils.createAdminAndGetAccessCookie();
+        userCookie = testUtils.createUserAndGetAccessCookie();
     }
 
     private ComponentPriceDTO samplePriceDTO() {
@@ -75,7 +74,7 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.value").value(199.99))
@@ -88,7 +87,7 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isForbidden());
         }
@@ -113,14 +112,14 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andReturn().getResponse().getContentAsString();
             Long priceId = objectMapper.readTree(response).get("id").asLong();
             dto.setValue(149.99);
             mockMvc.perform(put(BASE_URL + "/" + priceId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.value").value(149.99));
@@ -132,14 +131,14 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andReturn().getResponse().getContentAsString();
             Long priceId = objectMapper.readTree(response).get("id").asLong();
             dto.setValue(149.99);
             mockMvc.perform(put(BASE_URL + "/" + priceId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isForbidden());
         }
@@ -154,15 +153,15 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andReturn().getResponse().getContentAsString();
             Long priceId = objectMapper.readTree(response).get("id").asLong();
             mockMvc.perform(delete(BASE_URL + "/" + priceId)
-                            .header("Authorization", "Bearer " + adminToken))
+                            .cookie(adminCookie))
                     .andExpect(status().isNoContent());
             mockMvc.perform(get(BASE_URL + "/" + priceId)
-                            .header("Authorization", "Bearer " + adminToken))
+                            .cookie(adminCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -172,12 +171,12 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andReturn().getResponse().getContentAsString();
             Long priceId = objectMapper.readTree(response).get("id").asLong();
             mockMvc.perform(delete(BASE_URL + "/" + priceId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isForbidden());
         }
     }
@@ -191,12 +190,12 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto = samplePriceDTO();
             String response = mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andReturn().getResponse().getContentAsString();
             Long priceId = objectMapper.readTree(response).get("id").asLong();
             mockMvc.perform(get(BASE_URL + "/" + priceId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.value").value(199.99));
         }
@@ -205,7 +204,7 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
         @DisplayName("Should return 404 when price not found")
         void shouldReturn404WhenNotFound() throws Exception {
             mockMvc.perform(get(BASE_URL + "/99999")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -226,7 +225,7 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             var dto1 = samplePriceDTO();
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto1)))
                     .andExpect(status().isOk());
             var dto2 = samplePriceDTO();
@@ -234,11 +233,11 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
             dto2.setTime(LocalDate.now().minusDays(1)); // Different date to avoid unique constraint violation
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(dto2)))
                     .andExpect(status().isOk());
             mockMvc.perform(get(BASE_URL + "/history?componentId=100&componentType=CPU")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()", org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
         }
@@ -247,7 +246,7 @@ public class ComponentPriceControllerIntegrationTest extends BaseIntegrationTest
         @DisplayName("Should return 404 when no prices exist for component")
         void shouldReturn404WhenNoPrices() throws Exception {
             mockMvc.perform(get(BASE_URL + "/history?componentId=99999&componentType=CPU")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
     }

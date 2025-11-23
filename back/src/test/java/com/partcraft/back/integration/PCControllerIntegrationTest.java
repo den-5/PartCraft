@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -47,17 +48,15 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
     private static final String PC_BASE_URL = "/api/pc";
 
-    private String adminToken;
-    private String userToken;
+    private MockCookie adminCookie;
+    private MockCookie userCookie;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Delete PCs first (child) before Users (parent) to avoid FK constraint violations
         pcRepository.deleteAll();
         userRepository.deleteAll();
-        // Create shared users once
-        adminToken = testUtils.createAdmin();
-        userToken = testUtils.createUser();
+        adminCookie = testUtils.createAdminAndGetAccessCookie();
+        userCookie = testUtils.createUserAndGetAccessCookie();
     }
 
     @Nested
@@ -71,7 +70,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             String response = mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("Gaming PC"))
@@ -91,7 +90,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("Gaming PC"));
@@ -121,7 +120,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             // Create PC first
             String createResponse = mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -129,7 +128,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             // Get PC by ID
             mockMvc.perform(get(PC_BASE_URL + "/" + pcId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(pcId))
                     .andExpect(jsonPath("$.name").value("Gaming PC"));
@@ -140,7 +139,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturn404WhenPCNotFound() throws Exception {
 
             mockMvc.perform(get(PC_BASE_URL + "/99999")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -164,7 +163,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             var pc1 = sampleCreatePCDTO();
             mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(pc1)))
                     .andExpect(status().isOk());
 
@@ -173,13 +172,13 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             pc2.setPurpose("Work");
             mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(pc2)))
                     .andExpect(status().isOk());
 
             // Get all PCs for user
             mockMvc.perform(get(PC_BASE_URL + "/user/testuser")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2));
         }
@@ -189,7 +188,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturn404WhenUserNotFound() throws Exception {
 
             mockMvc.perform(get(PC_BASE_URL + "/user/nonexistentuser")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -198,7 +197,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturn200WithEmptyArrayWhenUserHasNoPCs() throws Exception {
 
             mockMvc.perform(get(PC_BASE_URL + "/user/testuser")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(0));
         }
@@ -223,7 +222,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             // Create PC
             String createResponse = mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -237,7 +236,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(put(PC_BASE_URL + "/update-fields/" + pcId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(updateDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("Updated Gaming PC"))
@@ -252,7 +251,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(put(PC_BASE_URL + "/update-fields/99999")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(updateDTO)))
                     .andExpect(status().isNotFound());
         }
@@ -281,7 +280,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             // Create PC
             String createResponse = mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -292,7 +291,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(put(PC_BASE_URL + "/update-components/" + pcId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(updateDTO)))
                     .andExpect(status().isOk());
         }
@@ -304,7 +303,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(put(PC_BASE_URL + "/update-components/99999")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(updateDTO)))
                     .andExpect(status().isNotFound());
         }
@@ -333,7 +332,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             // Create PC
             String createResponse = mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -341,12 +340,12 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
 
             // Delete PC
             mockMvc.perform(delete(PC_BASE_URL + "/" + pcId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk());
 
             // Verify PC is deleted
             mockMvc.perform(get(PC_BASE_URL + "/" + pcId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -355,7 +354,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturn404WhenPCNotFound() throws Exception {
 
             mockMvc.perform(delete(PC_BASE_URL + "/99999")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -381,7 +380,7 @@ public class PCControllerIntegrationTest extends BaseIntegrationTest {
             createPCDTO.setMotherboardId(motherboardId);
             mockMvc.perform(post(PC_BASE_URL + "/")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(createPCDTO)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Component compatibility error")));

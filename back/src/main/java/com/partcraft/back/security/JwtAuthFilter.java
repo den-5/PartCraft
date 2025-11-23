@@ -32,17 +32,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        String header = request.getHeader("Authorization");
+        // Only use cookies for authentication, do not check Authorization header
         String token = null;
         String username = null;
-
-        if (header != null && header.startsWith("Bearer ")) {
-            token = header.substring(7);
-            try {
-                username = jwtUtil.getUsernameFromToken(token);
-            } catch (Exception e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
-                return;
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    try {
+                        username = jwtUtil.getUsernameFromToken(token);
+                    } catch (Exception e) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                        return;
+                    }
+                    break;
+                }
             }
         }
         // Validate token and set authentication

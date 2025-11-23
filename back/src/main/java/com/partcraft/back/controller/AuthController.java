@@ -2,10 +2,14 @@ package com.partcraft.back.controller;
 
 import com.partcraft.back.dto.*;
 import com.partcraft.back.dto.User.CreateUserDTO;
+import com.partcraft.back.dto.User.UserDTO;
 import com.partcraft.back.exception.AuthException;
 import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.service.RefreshTokenService;
 import com.partcraft.back.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,9 +33,27 @@ public class AuthController {
         this.refreshTokenService = refreshTokenService;
     }
 
+    private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
+        ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .sameSite("Strict")
+                .maxAge(1800) // 30 min
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .sameSite("Strict")
+                .maxAge(86400) // 1 day
+                .build();
+        response.addHeader("Set-Cookie", accessCookie.toString());
+        response.addHeader("Set-Cookie", refreshCookie.toString());
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO request) throws AuthException {
+    public ResponseEntity<UserDTO> login(@RequestBody LoginRequestDTO request, HttpServletResponse response) throws AuthException {
 
         var authResponseDTO = userService.getUserByEmail(request.getEmail());
         try {
@@ -42,41 +64,31 @@ public class AuthController {
         } catch (Exception e) {
             throw new AuthException("Invalid email or password");
         }
-        return ResponseEntity.ok(authResponseDTO);
+        setAuthCookies(response, authResponseDTO.getTokens().getAccessToken(), authResponseDTO.getTokens().getRefreshToken());
+        return ResponseEntity.ok(authResponseDTO.getUser());
     }
-    //test pipeline
 
     @PostMapping("/sign-up")
-    public ResponseEntity<AuthResponseDTO> signUp(@RequestBody CreateUserDTO request) {
+    public ResponseEntity<UserDTO> signUp(@RequestBody CreateUserDTO request, HttpServletResponse response) {
         var authResponseDTO = userService.createUser(request);
-        return ResponseEntity.ok(authResponseDTO);
+        setAuthCookies(response, authResponseDTO.getTokens().getAccessToken(), authResponseDTO.getTokens().getRefreshToken());
+        return ResponseEntity.status(HttpStatus.OK).body(authResponseDTO.getUser());
     }
 
     @GetMapping("/refresh")
-    public ResponseEntity<JwtTokensDTO> refresh(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) throws AuthException {
-        try {
-            String refreshToken = null;
-            if (authorizationHeader == null) {
-                throw new AuthException("Refresh token required");
-            }
-            if (!authorizationHeader.startsWith("Bearer ")) {
-                throw new AuthException("Invalid authorization header format");
-            }
-
-            refreshToken = authorizationHeader.substring(7);
-
-            if (refreshTokenService.isRefreshTokenValid(refreshToken)) {
-                String username = jwtUtils.getUsernameFromRefreshToken(refreshToken);
-                refreshTokenService.deleteRefreshToken(refreshToken);
-
-                return ResponseEntity.ok().body(new JwtTokensDTO(jwtUtils.generateToken(username),
-                        refreshTokenService.createRefreshToken(username)));
-            }
-
-            throw new AuthException("Invalid refresh token");
-        } catch (Exception e) {
-            throw new AuthException("Error while validating refresh token");
+    public ResponseEntity<Void> refresh(HttpServletResponse response, @CookieValue(value = "refreshToken", required = false) String refreshToken) throws AuthException {
+        if (refreshToken == null) {
+            throw new AuthException("Refresh token required");
         }
+        if (refreshTokenService.isRefreshTokenValid(refreshToken)) {
+            String username = jwtUtils.getUsernameFromRefreshToken(refreshToken);
+            refreshTokenService.deleteRefreshToken(refreshToken);
+            String newAccessToken = jwtUtils.generateToken(username);
+            String newRefreshToken = refreshTokenService.createRefreshToken(username);
+            setAuthCookies(response, newAccessToken, newRefreshToken);
+            return ResponseEntity.ok().build();
+        }
+        throw new AuthException("Invalid refresh token");
     }
 
     @GetMapping("/username-availability/{username}")

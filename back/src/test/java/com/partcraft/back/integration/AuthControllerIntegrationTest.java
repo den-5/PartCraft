@@ -25,7 +25,9 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -63,19 +65,27 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Successful sign-Up tests")
     class SuccessfulSignUpTests {
         @Test
-        @DisplayName("Should create user and return 200 with valid data")
+        @DisplayName("Should create user and return 200 with valid data and set cookies")
         void shouldCreateUserAndReturn200WithValidData() throws Exception {
             CreateUserDTO request = sampleCreateUserDTO();
-            mockMvc.perform(post("/api/auth/sign-up")
+            var result = mockMvc.perform(post("/api/auth/sign-up")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.user.username").value(request.getUsername()))
-                    .andExpect(jsonPath("$.user.password").doesNotExist())
-                    .andExpect(jsonPath("$.user.email").value(request.getEmail()))
-                    .andExpect(jsonPath("$.tokens").exists())
-                    .andExpect(jsonPath("$.tokens.accessToken").isNotEmpty())
-                    .andExpect(jsonPath("$.tokens.refreshToken").isNotEmpty());
+                    .andExpect(jsonPath("$.username").value(request.getUsername()))
+                    .andExpect(jsonPath("$.password").doesNotExist())
+                    .andExpect(jsonPath("$.email").value(request.getEmail()))
+                    .andExpect(cookie().exists("accessToken"))
+                    .andExpect(cookie().exists("refreshToken"))
+                    .andExpect(cookie().httpOnly("accessToken", true))
+                    .andExpect(cookie().httpOnly("refreshToken", true))
+                    .andReturn();
+
+            // Verify cookies have values
+            assertNotNull(result.getResponse().getCookie("accessToken"));
+            assertNotNull(result.getResponse().getCookie("refreshToken"));
+            assertFalse(result.getResponse().getCookie("accessToken").getValue().isEmpty());
+            assertFalse(result.getResponse().getCookie("refreshToken").getValue().isEmpty());
         }
 
         @Test
@@ -155,44 +165,31 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Successful user login tests")
     class SuccessfulUserLoginTests {
         @Test
-        @DisplayName("login should return AuthResponseDTO and status 200")
-        void shouldReturnStatus200AndAuthResponseDTO() throws Exception {
+        @DisplayName("login should return UserDTO and status 200 with cookies")
+        void shouldReturnStatus200AndUserDTO() throws Exception {
             var request = sampleLoginRequestDTO();
 
             User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
             userRepository.save(user);
 
-            mockMvc.perform(post("/api/auth/login")
+            var result = mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.user.username").value(user.getUsername()))
-                    .andExpect(jsonPath("$.user.password").doesNotExist())
-                    .andExpect(jsonPath("$.user.email").value(user.getEmail()))
-                    .andExpect(jsonPath("$.tokens").exists())
-                    .andExpect(jsonPath("$.tokens.accessToken").isNotEmpty())
-                    .andExpect(jsonPath("$.tokens.refreshToken").isNotEmpty());
-        }
+                    .andExpect(jsonPath("$.username").value(user.getUsername()))
+                    .andExpect(jsonPath("$.password").doesNotExist())
+                    .andExpect(jsonPath("$.email").value(user.getEmail()))
+                    .andExpect(cookie().exists("accessToken"))
+                    .andExpect(cookie().exists("refreshToken"))
+                    .andExpect(cookie().httpOnly("accessToken", true))
+                    .andExpect(cookie().httpOnly("refreshToken", true))
+                    .andReturn();
 
-        @Test
-        @DisplayName("login should create RefreshToken entity in Redis and return status 200")
-        void shouldReturnStatus200AndCreateRefreshTokenEntity() throws Exception {
-            var request = sampleLoginRequestDTO();
-
-            User user = new User("testuser", "test@example.com", passwordEncoder.encode("Password123!"));
-            userRepository.save(user);
-
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk());
-
-            var tokens = refreshTokenRepository.findAll();
-            long count = 0;
-            for (var token : tokens) {
-                count++;
-            }
-            assert count == 1;
+            // Verify cookies have values
+            assertNotNull(result.getResponse().getCookie("accessToken"));
+            assertNotNull(result.getResponse().getCookie("refreshToken"));
+            assertFalse(result.getResponse().getCookie("accessToken").getValue().isEmpty());
+            assertFalse(result.getResponse().getCookie("refreshToken").getValue().isEmpty());
         }
     }
 
@@ -272,4 +269,3 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
         return new LoginRequestDTO("test@example.com", "Password123!");
     }
 }
-

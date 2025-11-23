@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponseDTO {
     private UserDTO user;
-    private JwtTokensDTO tokens;
+    private JwtTokensDTO tokens; // Only for internal use, not exposed in API response
 }

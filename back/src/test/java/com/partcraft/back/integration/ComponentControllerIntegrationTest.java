@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -44,16 +45,16 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private TestUtils testUtils;
 
-    private String adminToken;
-    private String userToken;
+    private MockCookie adminCookie;
+    private MockCookie userCookie;
 
     @BeforeEach
     void setUp() throws Exception {
         // Delete components first before users to avoid FK constraint violations
         cpuRepository.deleteAll();
         userRepository.deleteAll();
-        adminToken = testUtils.createAdmin();
-        userToken = testUtils.createUser();
+        adminCookie = testUtils.createAdminAndGetAccessCookie();
+        userCookie = testUtils.createUserAndGetAccessCookie();
     }
 
     // Using CPU endpoints as representative of all component controllers
@@ -72,7 +73,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.cpuModel").value("Intel i9-13900K"));
@@ -85,7 +86,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andExpect(status().isForbidden());
         }
@@ -114,7 +115,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var componentDTO = sampleCPUDTO();
             String response = mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -124,7 +125,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             componentDTO.setCpuModel("Intel i9-14900K");
             mockMvc.perform(put(COMPONENT_BASE_URL + "/" + componentId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.cpuModel").value("Intel i9-14900K"));
@@ -138,7 +139,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var componentDTO = sampleCPUDTO();
             String response = mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -148,7 +149,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             componentDTO.setCpuModel("Intel i9-14900K");
             mockMvc.perform(put(COMPONENT_BASE_URL + "/" + componentId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + userToken)
+                            .cookie(userCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andExpect(status().isForbidden());
         }
@@ -166,7 +167,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var componentDTO = sampleCPUDTO();
             String response = mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -174,12 +175,12 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
             // Delete the component
             mockMvc.perform(delete(COMPONENT_BASE_URL + "/" + componentId)
-                            .header("Authorization", "Bearer " + adminToken))
+                            .cookie(adminCookie))
                     .andExpect(status().isOk());
 
             // Verify it's deleted
             mockMvc.perform(get(COMPONENT_BASE_URL + "/" + componentId)
-                            .header("Authorization", "Bearer " + adminToken))
+                            .cookie(adminCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -191,7 +192,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var componentDTO = sampleCPUDTO();
             String response = mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -199,7 +200,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
             // Try to delete as user
             mockMvc.perform(delete(COMPONENT_BASE_URL + "/" + componentId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isForbidden());
         }
     }
@@ -216,7 +217,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var componentDTO = sampleCPUDTO();
             String response = mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(componentDTO)))
                     .andReturn().getResponse().getContentAsString();
 
@@ -224,7 +225,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
 
             // Get as user
             mockMvc.perform(get(COMPONENT_BASE_URL + "/" + componentId)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.cpuModel").value("Intel i9-13900K"));
         }
@@ -234,7 +235,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturn404WhenNotFound() throws Exception {
 
             mockMvc.perform(get(COMPONENT_BASE_URL + "/99999")
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isNotFound());
         }
 
@@ -258,7 +259,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             var component1 = sampleCPUDTO();
             mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(component1)))
                     .andExpect(status().isOk());
 
@@ -266,13 +267,13 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
             component2.setCpuModel("AMD Ryzen 9 7950X");
             mockMvc.perform(post(COMPONENT_BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "Bearer " + adminToken)
+                            .cookie(adminCookie)
                             .content(objectMapper.writeValueAsString(component2)))
                     .andExpect(status().isOk());
 
             // Get all as user
             mockMvc.perform(get(COMPONENT_BASE_URL)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2));
         }
@@ -282,7 +283,7 @@ class ComponentControllerIntegrationTest extends BaseIntegrationTest {
         void shouldReturnEmptyListWhenNoComponents() throws Exception {
 
             mockMvc.perform(get(COMPONENT_BASE_URL)
-                            .header("Authorization", "Bearer " + userToken))
+                            .cookie(userCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(0));
         }
