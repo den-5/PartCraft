@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -63,8 +64,13 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .allowedOrigins(
+                            "http://localhost:3000",      // Original local frontend
+                            "http://127.0.0.1:3000",      // Alternative local frontend address
+                            "http://20.19.80.10",         // Deployed IP (if accessed without port 8080/default)
+                            "http://20.19.80.10:8080"     // Deployed API address (for Swagger)
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowCredentials(true);
             }
         };

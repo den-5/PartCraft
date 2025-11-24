@@ -104,13 +104,22 @@ public class TestUtils {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andReturn();
+
+        // Print the actual error if the status is not 200 OK
+        if (result.getResponse().getStatus() >= 400) {
+            throw new RuntimeException("Sign-up failed with status " + result.getResponse().getStatus() +
+                " | Response Body: " + result.getResponse().getContentAsString());
+        }
+
         Cookie[] cookies = result.getResponse().getCookies();
-        for (Cookie c : cookies) {
-            if (c.getName().equals("accessToken")) {
-                return new MockCookie("accessToken", c.getValue());
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                if (c.getName().equals("accessToken")) {
+                    return new MockCookie("accessToken", c.getValue());
+                }
             }
         }
-        throw new RuntimeException("No accessToken cookie found");
+        throw new RuntimeException("No accessToken cookie found. Response was 200 but no cookie set.");
     }
 
     public MockCookie createAdminAndGetAccessCookie() throws Exception {
@@ -119,22 +128,34 @@ public class TestUtils {
                 "admin@example.com",
                 "AdminPassword123!"
         );
-        var admin = new User();
-        admin.setUsername(request.getUsername());
-        admin.setEmail(request.getEmail());
-        admin.setPassword(passwordEncoder.encode(request.getPassword()));
-        admin.setRole(UserRole.ADMIN);
-        userRepository.save(admin);
+        // Safe check to avoid unique constraint errors if tests run in parallel
+        if (userRepository.findUserByUsername(request.getUsername()).isEmpty()) {
+            var admin = new User();
+            admin.setUsername(request.getUsername());
+            admin.setEmail(request.getEmail());
+            admin.setPassword(passwordEncoder.encode(request.getPassword()));
+            admin.setRole(UserRole.ADMIN);
+            userRepository.save(admin);
+        }
+
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andReturn();
+
+        if (result.getResponse().getStatus() >= 400) {
+            throw new RuntimeException("Login failed with status " + result.getResponse().getStatus() +
+                " | Response Body: " + result.getResponse().getContentAsString());
+        }
+
         Cookie[] cookies = result.getResponse().getCookies();
-        for (Cookie c : cookies) {
-            if (c.getName().equals("accessToken")) {
-                return new MockCookie("accessToken", c.getValue());
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                if (c.getName().equals("accessToken")) {
+                    return new MockCookie("accessToken", c.getValue());
+                }
             }
         }
-        throw new RuntimeException("No accessToken cookie found");
+        throw new RuntimeException("No accessToken cookie found. Response was 200 but no cookie set.");
     }
 }

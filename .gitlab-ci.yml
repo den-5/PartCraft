@@ -5,42 +5,45 @@ stages:
 
 variables:
   MAVEN_CLI_OPTS: "-B -q"
-  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+
+services:
+  # Pinned for Testcontainers stability
+  - name: docker:24-dind
+    command: ["--tls=false"]
 
 build:
   stage: build
   image: maven:3.9.6-eclipse-temurin-21
-  services:
-    - docker:dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_HOST: tcp://docker:2375
   before_script:
-    - apt-get update -y
-    - apt-get install -y docker.io
+    # FIX: Re-adding the necessary Docker client installation
+    - apt-get update -y && apt-get install -y docker.io
   script:
-    - echo "Force pulling correct JDK image"
-    - docker pull maven:3.9.6-eclipse-temurin-21
-
-    - echo "Java version check:"
-    - mvn -version
-    - java -version
-
-    # IGNORE TEST FAILURES DURING BUILD
-    - mvn $MAVEN_CLI_OPTS -f back/pom.xml clean package -Dmaven.test.failure.ignore=true
-
-    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.gitlab.com
-    - docker build -t registry.gitlab.com/$CI_PROJECT_PATH/api:latest back
-    - docker push registry.gitlab.com/$CI_PROJECT_PATH/api:latest
+    - export LOWERCASE_PROJECT_PATH=$(echo "$CI_PROJECT_PATH" | tr '[:upper:]' '[:lower:]')
+    - export IMAGE_TAG="registry.gitlab.com/${LOWERCASE_PROJECT_PATH}/api:latest"
+    
+    # 1. Build the Java app
+    - mvn $MAVEN_CLI_OPTS -f back/pom.xml clean package -DskipTests
+    
+    # 2. Login, Build, and Push Docker Image
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker build -t $IMAGE_TAG back
+    - docker push $IMAGE_TAG
   only:
     - main
 
 test:
   stage: test
   image: maven:3.9.6-eclipse-temurin-21
+  services:
+    - name: docker:24-dind
+      command: ["--tls=false"]
+  variables:
+    TESTCONTAINERS_RYUK_DISABLED: "true"
   script:
-    # IGNORE TEST FAILURES DURING TEST STAGE
-    - mvn $MAVEN_CLI_OPTS -f back/pom.xml test -Dmaven.test.failure.ignore=true
+    - export DOCKER_HOST="tcp://docker:2375"
+    - mvn $MAVEN_CLI_OPTS -f back/pom.xml test
   only:
     - main
 
@@ -50,15 +53,42 @@ deploy:
   before_script:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - cat "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
     - scp -o StrictHostKeyChecking=no back/docker-compose.yml $SSH_USER@$SSH_HOST:~/PartCraft/docker-compose.yml
-    - ssh $SSH_USER@$SSH_HOST "
+    - |
+      ssh $SSH_USER@$SSH_HOST "
         cd ~/PartCraft &&
-        docker compose pull &&
-        docker compose up -d
+        
+        # 1. Ensure V2 Plugin is installed (Idempotent)
+        mkdir -p ~/.docker/cli-plugins
+        if [ ! -f ~/.docker/cli-plugins/docker-compose ]; then
+            curl -SL https://github.com/docker/compose/releases/download/v2.29.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+            chmod +x ~/.docker/cli-plugins/docker-compose
+        fi
+
+        # 2. Export Environment Variables
+        export JWT_SECRET=\"$JWT_SECRET\"
+        export GOOGLE_CLIENT_ID=\"$GOOGLE_CLIENT_ID\"
+        export GOOGLE_CLIENT_SECRET=\"$GOOGLE_CLIENT_SECRET\"
+        export SPRING_DATASOURCE_URL=\"$SPRING_DATASOURCE_URL\"
+        export SPRING_DATASOURCE_USERNAME=\"$SPRING_DATASOURCE_USERNAME\"
+        export SPRING_DATASOURCE_PASSWORD=\"$SPRING_DATASOURCE_PASSWORD\"
+        export SPRING_PROFILES_ACTIVE=\"prod\"
+        
+        # 3. CLEANUP: Stop and remove old containers to fix 'Conflict' error
+        # We try both V1 and V2 down commands to be safe
+        docker compose down --remove-orphans || true
+        
+        # Explicitly remove the specific conflicting container if 'down' missed it
+        docker rm -f partcraft-api || true
+        docker rm -f fc4801a8aef2_partcraft-api || true
+
+        # 4. Deploy
+        docker compose pull
+        docker compose up -d --remove-orphans
       "
   only:
     - main

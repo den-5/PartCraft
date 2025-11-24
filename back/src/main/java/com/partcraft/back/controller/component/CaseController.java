@@ -5,12 +5,16 @@ import com.partcraft.back.dto.componentDTO.CaseDTO;
 import com.partcraft.back.entity.component.Case;
 import com.partcraft.back.service.ComponentService;
 import com.partcraft.back.service.component.CaseService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/case")
+@Tag(name = "Case", description = "Endpoints for managing PC case components")
+@SecurityRequirement(name = "cookieAuth")
 public class CaseController extends ComponentController<Case, CaseDTO, Long> {
 
     @Autowired
