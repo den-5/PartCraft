@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -254,6 +255,52 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 count++;
             }
             assert count == 0;
+        }
+    }
+
+    @Nested
+    @DisplayName("Logout endpoint tests")
+    class LogoutEndpointTests {
+        @Test
+        @DisplayName("Should logout and delete refresh token when valid cookie is provided")
+        void shouldLogoutAndDeleteRefreshToken() throws Exception {
+            // Register and login user to get refresh token
+            CreateUserDTO request = sampleCreateUserDTO();
+            var signUpResult = mockMvc.perform(post("/api/auth/sign-up")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            String refreshToken = signUpResult.getResponse().getCookie("refreshToken").getValue();
+            assertNotNull(refreshToken);
+            assertFalse(refreshToken.isEmpty());
+            assertTrue(refreshTokenRepository.findAll().iterator().hasNext());
+
+            // Call logout with refresh token cookie using MockCookie
+            mockMvc.perform(post("/api/auth/logout")
+                            .cookie(new MockCookie("refreshToken", refreshToken)))
+                    .andExpect(status().isOk());
+
+            // Token should be deleted
+            assertFalse(refreshTokenRepository.findAll().iterator().hasNext());
+        }
+
+        @Test
+        @DisplayName("Should return 400 if no refresh token is provided")
+        void shouldReturn400IfNoRefreshTokenProvided() throws Exception {
+            mockMvc.perform(post("/api/auth/logout"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should return 200 if refresh token is invalid or already deleted")
+        void shouldReturn200IfRefreshTokenInvalidOrDeleted() throws Exception {
+            // Use a random/invalid token with MockCookie
+            String invalidToken = "invalidtoken123";
+            mockMvc.perform(post("/api/auth/logout")
+                            .cookie(new MockCookie("refreshToken", invalidToken)))
+                    .andExpect(status().isOk());
         }
     }
 

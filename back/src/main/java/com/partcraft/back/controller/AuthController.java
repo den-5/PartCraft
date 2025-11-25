@@ -176,4 +176,23 @@ public class AuthController {
             @PathVariable String email) {
         return ResponseEntity.ok().body(userService.verifyEmailAvailability(email));
     }
+
+    @Operation(
+            summary = "Logout user (invalidate refresh token)",
+            description = "Logs out the user by deleting the provided refresh token from the database or Redis. Only the current session/device is affected."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully logged out"),
+            @ApiResponse(responseCode = "400", description = "No refresh token provided or invalid token")
+    })
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @Parameter(description = "Refresh token from HttpOnly cookie")
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        refreshTokenService.deleteRefreshToken(refreshToken);
+        return ResponseEntity.ok().build();
+    }
 }
