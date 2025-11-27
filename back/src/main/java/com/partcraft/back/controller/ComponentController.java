@@ -4,6 +4,7 @@ import com.partcraft.back.service.ComponentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +24,11 @@ public abstract class ComponentController<T, DTO, ID> {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Component successfully created",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
+            @ApiResponse(responseCode = "400", description = "Invalid component data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid component data",
+            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasRole('ADMIN')")
@@ -44,12 +47,14 @@ public abstract class ComponentController<T, DTO, ID> {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Component successfully updated",
                     content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid component data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid component data",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
@@ -68,10 +73,14 @@ public abstract class ComponentController<T, DTO, ID> {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Component successfully deleted"),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")

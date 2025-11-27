@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.slf4j.Logger;
@@ -13,7 +14,7 @@ import org.slf4j.Logger;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler extends RuntimeException {
+public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -39,12 +40,11 @@ public class GlobalExceptionHandler extends RuntimeException {
         }
     }
 
-
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ErrorResponse> handleAuthError(AuthException exception) {
         log.error("Error in AuthController class: ", exception);
         ErrorResponse errorResponse = new ErrorResponse("AUTH_CONTROLLER_ERROR", exception.getMessage());
-        return ResponseEntity.status(401).body(errorResponse);
+        return ResponseEntity.badRequest().body(errorResponse);
     }
 
     @ExceptionHandler(ValidationException.class)
@@ -75,7 +75,6 @@ public class GlobalExceptionHandler extends RuntimeException {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
-
     @ExceptionHandler(ComponentPriceServiceException.class)
     public ResponseEntity<ErrorResponse> handleComponentPriceServiceError(ComponentPriceServiceException exception) {
         log.error("Error in ComponentPriceService class: ", exception);
@@ -96,11 +95,16 @@ public class GlobalExceptionHandler extends RuntimeException {
                 .body(Map.of("error", "Access Denied"));
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthenticationException(AuthenticationException ex) {
+        log.error("Authentication failed: ", ex);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Authentication failed: " + ex.getMessage()));
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         return ResponseEntity.internalServerError()
                 .body(Map.of("error", "Unexpected error: " + ex.getMessage()));
     }
-
 }

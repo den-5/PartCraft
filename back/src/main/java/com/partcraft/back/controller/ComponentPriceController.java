@@ -33,8 +33,12 @@ public class ComponentPriceController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved price history",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentPriceDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/history")
@@ -53,8 +57,12 @@ public class ComponentPriceController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved price record",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentPriceDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Price record not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/{priceId}")
@@ -71,9 +79,11 @@ public class ComponentPriceController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Price record successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentPriceDTO.class))),
-            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
+            @ApiResponse(responseCode = "400", description = "Invalid price data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid price data",
+            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasRole('ADMIN')")
@@ -91,12 +101,14 @@ public class ComponentPriceController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Price record successfully updated",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentPriceDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid price data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Price record not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid price data",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{priceId}")
@@ -114,10 +126,14 @@ public class ComponentPriceController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Price record successfully deleted"),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Price record not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{priceId}")

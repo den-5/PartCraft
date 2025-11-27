@@ -69,9 +69,11 @@ public class AuthController {
                     "**Password format:** Minimum 8 characters, must contain at least one digit, one lowercase letter, one uppercase letter, and one special character. No whitespace allowed."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully authenticated",
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated. User data returned in body, tokens set as HttpOnly cookies.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Invalid email or password",
+            @ApiResponse(responseCode = "400", description = "Invalid email or password (authentication failed)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Spring Security authentication exception",
                     content = @Content(mediaType = "application/json"))
     })
     @PostMapping("/login")
@@ -101,10 +103,10 @@ public class AuthController {
                     "**Password format:** Minimum 8 characters, must contain at least one digit, one lowercase letter, one uppercase letter, and one special character. No whitespace allowed."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User successfully created",
+            @ApiResponse(responseCode = "200", description = "User successfully created. User data returned in body, tokens set as HttpOnly cookies.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid user data or user already exists",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "400", description = "Invalid user data (validation error), user already exists, or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PostMapping("/sign-up")
     public ResponseEntity<UserDTO> signUp(
@@ -122,8 +124,10 @@ public class AuthController {
             description = "Generates new access and refresh tokens using the refresh token from the cookie. The old refresh token is invalidated and new tokens are set as HttpOnly cookies."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tokens successfully refreshed"),
-            @ApiResponse(responseCode = "401", description = "Invalid or missing refresh token",
+            @ApiResponse(responseCode = "200", description = "Tokens successfully refreshed. New tokens set as HttpOnly cookies."),
+            @ApiResponse(responseCode = "400", description = "Invalid or missing refresh token",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Spring Security authentication exception",
                     content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/refresh")
@@ -179,11 +183,12 @@ public class AuthController {
 
     @Operation(
             summary = "Logout user (invalidate refresh token)",
-            description = "Logs out the user by deleting the provided refresh token from the database or Redis. Only the current session/device is affected."
+            description = "Logs out the user by deleting the provided refresh token from the database or Redis. Only the current session/device is affected. Other devices remain logged in."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully logged out"),
-            @ApiResponse(responseCode = "400", description = "No refresh token provided or invalid token")
+            @ApiResponse(responseCode = "200", description = "Successfully logged out. Refresh token invalidated."),
+            @ApiResponse(responseCode = "400", description = "No refresh token provided or invalid token",
+                    content = @Content(mediaType = "application/json"))
     })
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(

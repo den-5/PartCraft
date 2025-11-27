@@ -221,19 +221,20 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isUnauthorized())
+                    .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"))
                     .andExpect(jsonPath("$.message").value("Invalid email or password"));
         }
 
         @Test
-        @DisplayName("login should return 401 when email format is invalid")
-        void shouldReturn401WhenEmailFormatIsInvalid() throws Exception {
+        @DisplayName("login should return 400 when email format is invalid")
+        void shouldReturn400WhenEmailFormatIsInvalid() throws Exception {
             var request = new LoginRequestDTO("invalidemail", "Password123!");
 
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATE_USER_DATA_ERROR"))
                     .andExpect(jsonPath("$.message").value("invalid email format"));
         }

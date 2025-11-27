@@ -37,9 +37,9 @@ public class PCController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PC successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PCDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid PC configuration data or PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid PC configuration data",
                     content = @Content(mediaType = "application/json"))
     })
     @PostMapping("/")
@@ -57,8 +57,10 @@ public class PCController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved PC configuration",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PCDTO.class))),
+            @ApiResponse(responseCode = "400", description = "PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "PC configuration not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @GetMapping("/{id}")
     public ResponseEntity<PCDTO> getPCById(
@@ -76,8 +78,10 @@ public class PCController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user's PC configurations",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PCDTO.class))),
+            @ApiResponse(responseCode = "400", description = "PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @GetMapping("/user/{username}")
     public ResponseEntity<List<PCDTO>> getUserPcs(
@@ -94,10 +98,12 @@ public class PCController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PC fields successfully updated",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PCDTO.class))),
-            @ApiResponse(responseCode = "404", description = "PC configuration not found",
+            @ApiResponse(responseCode = "400", description = "Invalid update data or PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid update data",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "404", description = "PC configuration not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PutMapping("/update-fields/{id}")
     public ResponseEntity<PCDTO> updatePCFields(
@@ -115,10 +121,12 @@ public class PCController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PC components successfully updated",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PCDTO.class))),
-            @ApiResponse(responseCode = "404", description = "PC configuration not found",
+            @ApiResponse(responseCode = "400", description = "Invalid component configuration or PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid component configuration",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "404", description = "PC configuration not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PutMapping("/update-components/{id}")
     public ResponseEntity<PCDTO> updatePCComponents(
@@ -135,8 +143,12 @@ public class PCController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PC configuration successfully deleted"),
+            @ApiResponse(responseCode = "400", description = "PC service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "PC configuration not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePCById(

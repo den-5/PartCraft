@@ -33,8 +33,12 @@ public class ComponentLinkController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved component links",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentLinkDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/all")
@@ -53,8 +57,12 @@ public class ComponentLinkController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved component link",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentLinkDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component link not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("{linkId}")
@@ -71,9 +79,11 @@ public class ComponentLinkController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Component link successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentLinkDTO.class))),
-            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
+            @ApiResponse(responseCode = "400", description = "Invalid link data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid link data",
+            @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasRole('ADMIN')")
@@ -91,12 +101,14 @@ public class ComponentLinkController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Component link successfully updated",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ComponentLinkDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid link data or service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component link not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid link data",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{linkId}")
@@ -114,10 +126,14 @@ public class ComponentLinkController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Component link successfully deleted"),
+            @ApiResponse(responseCode = "400", description = "Service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "User not authenticated",
+                    content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "Component link not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{linkId}")

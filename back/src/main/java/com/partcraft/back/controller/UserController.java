@@ -36,10 +36,12 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user profile",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "User service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/")
@@ -56,10 +58,12 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user profile",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "User service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/{username}")
@@ -78,9 +82,9 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated user data",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid update data, validation error, or user service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid update data",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
@@ -103,11 +107,11 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated user data",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid username, update data, validation error, or authentication error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid username or update data",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasRole('ADMIN')")
@@ -130,6 +134,8 @@ public class UserController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully deleted user account"),
+            @ApiResponse(responseCode = "400", description = "User service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json"))
     })
@@ -148,11 +154,11 @@ public class UserController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully deleted user account"),
+            @ApiResponse(responseCode = "400", description = "Invalid username, authentication error, or user service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "403", description = "User not authorized (requires ADMIN role)",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid username",
                     content = @Content(mediaType = "application/json"))
     })
     @PreAuthorize("hasRole('ADMIN')")
@@ -174,6 +180,8 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user role",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserRole.class))),
+            @ApiResponse(responseCode = "400", description = "User service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json"))
     })
@@ -192,10 +200,12 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user role",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserRole.class))),
+            @ApiResponse(responseCode = "400", description = "User service error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "User not authenticated",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json"))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
     })
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/role/{username}")
