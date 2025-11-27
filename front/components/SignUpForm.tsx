@@ -5,12 +5,10 @@ import {
     useEmailAvailabilityQuery,
     useSignupMutation,
     useUsernameAvailabilityQuery,
+    useLazyEmailAvailabilityQuery,
 } from '@/features/auth/authApi';
 import { useDispatch } from 'react-redux';
-import {
-    setCredentials,
-    useLazyEmailAvailabilityQuery,
-} from '@/features/auth/authSlice';
+import { setCredentials } from '@/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 // 1. Import the error helper
 import { getErrorMessage } from '@/utils/error-helpers';

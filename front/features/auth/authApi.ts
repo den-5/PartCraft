@@ -1,52 +1,60 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { UserDto } from './UserDto';
+import { UserDTO } from '@/shared/types';
+import { apiSlice } from '@/features/api/apiSlice';
 
-export const authApi = createApi({
-    reducerPath: 'authApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: process.env.NEXT_PUBLIC_API_URL + '/auth',
-    }),
+export const authApi = apiSlice.injectEndpoints({
     endpoints: builder => ({
-        login: builder.mutation<UserDto, { email: string; password: string }>({
-            query: credentials => ({
-                url: '/login',
+        login: builder.mutation<UserDTO, { email: string; password: string }>({
+            query: (credentials: { email: string; password: string }) => ({
+                url: '/auth/login',
                 method: 'POST',
                 body: credentials,
             }),
         }),
         signup: builder.mutation<
-            UserDto,
+            UserDTO,
             { email: string; password: string; username: string }
         >({
-            query: credentials => ({
-                url: '/sign-up',
+            query: (credentials: {
+                email: string;
+                password: string;
+                username: string;
+            }) => ({
+                url: '/auth/sign-up',
                 method: 'POST',
                 body: credentials,
             }),
         }),
         refresh: builder.query<void, void>({
-            query: () => ({
-                url: '/refresh',
+            query: (): {
+                url: string;
+                method: string;
+                responseHandler?: 'text';
+            } => ({
+                url: '/auth/refresh',
                 method: 'GET',
                 responseHandler: 'text',
             }),
         }),
         logout: builder.mutation<void, void>({
-            query: () => ({
-                url: '/logout',
+            query: (): {
+                url: string;
+                method: string;
+                responseHandler?: 'text';
+            } => ({
+                url: '/auth/logout',
                 method: 'POST',
                 responseHandler: 'text',
             }),
         }),
         usernameAvailability: builder.query<boolean, string>({
-            query: username => ({
-                url: `/username-availability/${username}`,
+            query: (username: string): { url: string; method: string } => ({
+                url: `/auth/username-availability/${username}`,
                 method: 'GET',
             }),
         }),
         emailAvailability: builder.query<boolean, string>({
-            query: email => ({
-                url: `/email-availability/${email}`,
+            query: (email: string): { url: string; method: string } => ({
+                url: `/auth/email-availability/${email}`,
                 method: 'GET',
             }),
         }),
@@ -60,4 +68,6 @@ export const {
     useLogoutMutation,
     useUsernameAvailabilityQuery,
     useEmailAvailabilityQuery,
+    useLazyUsernameAvailabilityQuery,
+    useLazyEmailAvailabilityQuery,
 } = authApi;

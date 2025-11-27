@@ -1,10 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { UserDto } from './UserDto';
-import { authApi } from '@/features/auth/authApi';
-export const { useLazyEmailAvailabilityQuery } = authApi;
+import { UserDTO } from '@/shared/types';
 
 interface AuthState {
-    user: UserDto | null;
+    user: UserDTO | null;
     isAuthenticated: boolean;
 }
 
@@ -17,7 +15,7 @@ const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
-        setCredentials: (state, action: PayloadAction<UserDto>) => {
+        setCredentials: (state, action: PayloadAction<UserDTO>) => {
             state.user = action.payload;
             state.isAuthenticated = true;
         },
