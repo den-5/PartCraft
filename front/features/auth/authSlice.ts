@@ -4,11 +4,13 @@ import { UserDTO } from '@/shared/types';
 interface AuthState {
     user: UserDTO | null;
     isAuthenticated: boolean;
+    isInitialized: boolean;
 }
 
 const initialState: AuthState = {
     user: null,
     isAuthenticated: false,
+    isInitialized: false,
 };
 
 const authSlice = createSlice({
@@ -23,8 +25,11 @@ const authSlice = createSlice({
             state.user = null;
             state.isAuthenticated = false;
         },
+        setAppInitialized: (state, action: PayloadAction<boolean>) => {
+            state.isInitialized = action.payload;
+        },
     },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, logout, setAppInitialized } = authSlice.actions;
 export default authSlice.reducer;
