@@ -2,7 +2,6 @@ package com.partcraft.back.dto.componentDTO;
 
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.entity.component.Case;
-import com.partcraft.back.entity.ComponentPlacement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +19,7 @@ public class CaseDTO {
     private String pictureUrl;
     private Size size;
     private Integer powerDraw;
-    private List<Long> componentPlacementIds;
+    private List<ComponentPlacementDTO> componentPlacements;
 
     public CaseDTO(Case pcCase) {
         this.id = pcCase.getId();
@@ -29,11 +28,8 @@ public class CaseDTO {
         this.rgbSetup = pcCase.getRgbSetup();
         this.powerDraw = pcCase.getPowerDraw();
         this.pictureUrl = pcCase.getPictureUrl();
-        if (pcCase.getSize() != null) {
-            this.size = new Size(pcCase.getSize().getWidth(), pcCase.getSize().getLength(), pcCase.getSize().getHeight());
-        } else {
-            this.size = null;
-        }
-        this.componentPlacementIds = pcCase.getComponentPlacements() != null ? pcCase.getComponentPlacements().stream().map(ComponentPlacement::getId).toList() : null;
+        this.size = pcCase.getSize() != null ?
+                new Size(pcCase.getSize().getWidth(), pcCase.getSize().getLength(), pcCase.getSize().getHeight()) : null;
+        this.componentPlacements = pcCase.getComponentPlacements() != null ? pcCase.getComponentPlacements().stream().map(ComponentPlacementDTO::new).toList() : null;
     }
 }

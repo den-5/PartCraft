@@ -1,6 +1,6 @@
 package com.partcraft.back.entity;
 
-import com.partcraft.back.dto.componentDTO.helper.Size;
+import com.partcraft.back.entity.component.helper.Size;
 import com.partcraft.back.entity.component.Case;
 import jakarta.persistence.*;
 import lombok.*;

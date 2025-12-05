@@ -4,8 +4,6 @@ import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.enums.CoolingType;
 import com.partcraft.back.exception.service.ComponentCompatibilityServiceException;
-import com.partcraft.back.repository.component.ComponentPlacementRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,9 +14,6 @@ import java.util.Optional;
 
 @Service
 public class ComponentCompatibilityService {
-
-    @Autowired
-    public ComponentPlacementRepository componentRepository;
 
     public boolean isCpuAndMotherboardCompatible(CPUDTO cpu, MotherBoardDTO motherboard) {
         if (motherboard.getSocketType() == null || cpu.getSocketType() == null) {
@@ -42,20 +37,18 @@ public class ComponentCompatibilityService {
 
     public boolean isGPUAndCaseCompatible(GPUDTO gpu, CaseDTO pcCase) {
         var gpuSize = gpu.getSize();
-        var gpuMaxSize = pcCase.getComponentPlacementIds().stream().map(id -> componentRepository.findById(id).orElse(null))
-                .filter(Objects::nonNull)
+        var gpuPlacement = pcCase.getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "GPU"))
                 .findFirst()
-                .orElseThrow(() -> new ComponentCompatibilityServiceException("GPU component placement not found in case"))
-                .getMaxSize();
+                .orElseThrow(() -> new ComponentCompatibilityServiceException("GPU component placement not found in case"));
+        var gpuMaxSize = gpuPlacement.getMaxSize();
         return gpuSize.getHeight() <= gpuMaxSize.getHeight() &&
                 gpuSize.getWidth() <= gpuMaxSize.getWidth() &&
                 gpuSize.getLength() <= gpuMaxSize.getLength();
     }
 
     public Optional<List<CaseCoolerDTO>> checkCaseCoolersAndCaseCompatibility(CaseCoolerDTO[] caseCoolers, CaseDTO pcCase, CPUCoolerDTO cpuCooler) {
-        var places = pcCase.getComponentPlacementIds().stream().map(id -> componentRepository.findById(id).orElse(null))
-                .filter(Objects::nonNull)
+        var places = pcCase.getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .toList();
 
@@ -77,9 +70,7 @@ public class ComponentCompatibilityService {
         }
 
         if (cpuCooler.getCoolingType() == CoolingType.Air) {
-            var airCoolerPlace = pc.getPcCase().getComponentPlacementIds().stream()
-                    .map(id -> componentRepository.findById(id).orElse(null))
-                    .filter(Objects::nonNull)
+            var airCoolerPlace = pc.getPcCase().getComponentPlacements().stream()
                     .filter(component -> Objects.equals(component.getComponentType(), "CPUCooler"))
                     .findFirst();
 
@@ -110,9 +101,7 @@ public class ComponentCompatibilityService {
             return true;
         }
         // Liquid cooler logic
-        var slotsInPCCase = pc.getPcCase().getComponentPlacementIds().stream()
-                .map(id -> componentRepository.findById(id).orElse(null))
-                .filter(Objects::nonNull)
+        var slotsInPCCase = pc.getPcCase().getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .filter(component -> component.getMaxSize().getWidth() >= cpuCooler.getSize().getWidth())
                 .filter(component -> component.getMaxSize().getHeight() >= cpuCooler.getSize().getHeight())
@@ -135,9 +124,7 @@ public class ComponentCompatibilityService {
         boolean isEnoughSlotsLeft = false;
 
         // Logic to check if there is enough space left for case coolers
-        var places = new ArrayList<>(pc.getPcCase().getComponentPlacementIds().stream()
-                .map(id -> componentRepository.findById(id).orElse(null))
-                .filter(Objects::nonNull)
+        var places = new ArrayList<>(pc.getPcCase().getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .toList());
 
@@ -180,9 +167,5 @@ public class ComponentCompatibilityService {
 
     public boolean isPSUCompatible() {
         return true;
-    }
-
-    public void setComponentRepository(ComponentPlacementRepository repository) {
-        this.componentRepository = repository;
     }
 }
