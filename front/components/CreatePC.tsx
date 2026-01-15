@@ -18,6 +18,8 @@ import {
     CreatePCDTO,
     VisibilityState,
 } from '@/shared/types';
+import ComponentSelect, { SelectOption } from '@/components/ui/ComponentSelect';
+import MultiComponentSelect, { MultiSelectOption } from '@/components/ui/MultiComponentSelect';
 
 function CreatePc() {
     // Form state
@@ -58,6 +60,107 @@ function CreatePc() {
     const { items: cases = [], isLoading: loadingCases } =
         useComponentManager<CaseDTO>('case');
 
+    // Convert components to SelectOption format
+    const cpuOptions: SelectOption[] = cpus.map((cpu: CPUDTO) => ({
+        id: cpu.id,
+        label: `${cpu.cpuBrand} ${cpu.cpuModel}`,
+        sublabel: `${cpu.cpuCores} Cores / ${cpu.cpuThreads} Threads`,
+        specs: [
+            { label: 'Cores', value: String(cpu.cpuCores) },
+            { label: 'Threads', value: String(cpu.cpuThreads) },
+            { label: 'Base Clock', value: `${cpu.cpuBaseClockGhz} GHz` },
+            { label: 'Boost Clock', value: `${cpu.cpuBoostClockGhz} GHz` },
+            { label: 'Socket Type', value: cpu.socketType },
+            { label: 'Power Draw', value: `${cpu.powerDraw}W` },
+        ],
+    }));
+
+    const gpuOptions: SelectOption[] = gpus.map((gpu: GPUDTO) => ({
+        id: gpu.id,
+        label: `${gpu.gpuBrand} ${gpu.gpuModel}`,
+        sublabel: `${gpu.gpuMemoryGb}GB VRAM`,
+        specs: [
+            { label: 'Memory', value: `${gpu.gpuMemoryGb}GB` },
+            { label: 'Power Draw', value: `${gpu.powerDraw}W` },
+        ],
+    }));
+
+    const motherboardOptions: SelectOption[] = motherboards.map((mb: MotherBoardDTO) => ({
+        id: mb.id,
+        label: `${mb.motherboardBrand} ${mb.motherboardModel}`,
+        sublabel: `${mb.chipset} • ${mb.socketType} • ${mb.memoryType}`,
+        specs: [
+            { label: 'Chipset', value: mb.chipset },
+            { label: 'Socket', value: mb.socketType },
+            { label: 'Memory Type', value: mb.memoryType },
+        ],
+    }));
+
+    const ramOptions: SelectOption[] = ramKits.map((ram: RAMKitDTO) => ({
+        id: ram.id,
+        label: `${ram.ramType} ${ram.ramSizeGb}GB`,
+        sublabel: `${ram.ramSpeedMhz}MHz • ${ram.ramSticksCount} stick(s)`,
+        specs: [
+            { label: 'Type', value: ram.ramType },
+            { label: 'Size', value: `${ram.ramSizeGb}GB` },
+            { label: 'Speed', value: `${ram.ramSpeedMhz}MHz` },
+            { label: 'Sticks', value: String(ram.ramSticksCount) },
+        ],
+    }));
+
+    const storageOptions: SelectOption[] = storages.map((storage: StorageDTO) => ({
+        id: storage.id,
+        label: `${storage.storageType} ${storage.storageTotalGb}GB`,
+        sublabel: `drive(s)`,
+        specs: [
+            { label: 'Type', value: storage.storageType },
+            { label: 'Capacity', value: `${storage.storageTotalGb}GB` },
+        ],
+    }));
+
+    const psuOptions: SelectOption[] = psus.map((psu: PSUDTO) => ({
+        id: psu.id,
+        label: psu.psuModel,
+        sublabel: `${psu.psuWattage}W`,
+        specs: [
+            { label: 'Wattage', value: `${psu.psuWattage}W` },
+        ],
+    }));
+
+    const caseCoolerOptions: MultiSelectOption[] = caseCoolers.map((cooler: CaseCoolerDTO) => ({
+        id: cooler.id,
+        label: `${cooler.fanSize}mm Fan`,
+        sublabel: cooler.coolingColor || 'Standard',
+        specs: [
+            { label: 'Size', value: `${cooler.fanSize}mm` },
+            { label: 'Color', value: cooler.coolingColor || 'Standard' },
+        ],
+    }));
+
+    const cpuCoolerOptions: SelectOption[] = cpuCoolers.map((cooler: CPUCoolerDTO) => ({
+        id: cooler.id,
+        label: `${cooler.coolingType} Cooler`,
+        sublabel: `${cooler.fanCount} fan(s) • ${cooler.maxTDP}W TDP`,
+        specs: [
+            { label: 'Type', value: cooler.coolingType },
+            { label: 'Fans', value: String(cooler.fanCount) },
+            { label: 'Socket', value: cooler.cpuSocket },
+            { label: 'TDP', value: `${cooler.maxTDP}W` },
+            { label: 'Case Slots', value: String(cooler.caseCoolerSlotsRequired) },
+        ],
+    }));
+
+    const caseOptions: SelectOption[] = cases.map((pcCase: CaseDTO) => ({
+        id: pcCase.id,
+        label: pcCase.caseModel || 'Unknown Case',
+        sublabel: `${pcCase.caseColor || 'N/A'} • ${pcCase.rgbSetup || 'No RGB'}`,
+        specs: [
+            { label: 'Model', value: pcCase.caseModel || 'N/A' },
+            { label: 'Color', value: pcCase.caseColor || 'N/A' },
+            { label: 'RGB', value: pcCase.rgbSetup || 'None' },
+        ],
+    }));
+
     const [createPC, { isLoading, isSuccess, isError, error }] =
         useCreatePCMutation();
 
@@ -68,21 +171,6 @@ function CreatePc() {
     ) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSelectNumber = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setForm(prev => ({
-            ...prev,
-            [name]: value ? Number(value) : undefined,
-        }));
-    };
-
-    const handleCoolerIdsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option =>
-            Number(option.value),
-        );
-        setForm(prev => ({ ...prev, coolerIds: selectedOptions }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -252,7 +340,7 @@ function CreatePc() {
                     </div>
 
                     {/* Core Components Card */}
-                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl overflow-visible min-h-[320px]">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
                                 <svg
@@ -274,185 +362,75 @@ function CreatePc() {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-visible">
                             {/* CPU */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                                        CPU (Processor)
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="cpuId"
-                                        value={form.cpuId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select CPU</option>
-                                        {cpus.map((cpu: CPUDTO) => (
-                                            <option key={cpu.id} value={cpu.id}>
-                                                {cpu.cpuBrand} {cpu.cpuModel}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="CPU (Processor)"
+                                placeholder="Select CPU"
+                                options={cpuOptions}
+                                value={form.cpuId}
+                                onChange={(value) => setForm(prev => ({ ...prev, cpuId: value }))}
+                                required
+                                accentColor="red"
+                                icon={
+                                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                }
+                            />
 
                             {/* GPU */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                                        GPU (Graphics Card)
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="gpuId"
-                                        value={form.gpuId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select GPU</option>
-                                        {gpus.map((gpu: GPUDTO) => (
-                                            <option key={gpu.id} value={gpu.id}>
-                                                {gpu.gpuBrand} {gpu.gpuModel} (
-                                                {gpu.gpuMemoryGb}GB)
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="GPU (Graphics Card)"
+                                placeholder="Select GPU"
+                                options={gpuOptions}
+                                value={form.gpuId}
+                                onChange={(value) => setForm(prev => ({ ...prev, gpuId: value }))}
+                                required
+                                accentColor="green"
+                                icon={
+                                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                    </svg>
+                                }
+                            />
 
                             {/* Motherboard */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
-                                        Motherboard
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="motherboardId"
-                                        value={form.motherboardId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">
-                                            Select Motherboard
-                                        </option>
-                                        {motherboards.map(
-                                            (mb: MotherBoardDTO) => (
-                                                <option
-                                                    key={mb.id}
-                                                    value={mb.id}
-                                                >
-                                                    {mb.motherboardBrand}{' '}
-                                                    {mb.motherboardModel}
-                                                </option>
-                                            ),
-                                        )}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="Motherboard"
+                                placeholder="Select Motherboard"
+                                options={motherboardOptions}
+                                value={form.motherboardId}
+                                onChange={(value) => setForm(prev => ({ ...prev, motherboardId: value }))}
+                                required
+                                accentColor="yellow"
+                                icon={
+                                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                                    </svg>
+                                }
+                            />
 
                             {/* RAM */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                                        RAM Kit
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="ramKitId"
-                                        value={form.ramKitId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select RAM Kit</option>
-                                        {ramKits.map((ram: RAMKitDTO) => (
-                                            <option key={ram.id} value={ram.id}>
-                                                {ram.ramType} {ram.ramSizeGb}GB
-                                                @ {ram.ramSpeedMhz}MHz
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="RAM Kit"
+                                placeholder="Select RAM Kit"
+                                options={ramOptions}
+                                value={form.ramKitId}
+                                onChange={(value) => setForm(prev => ({ ...prev, ramKitId: value }))}
+                                required
+                                accentColor="blue"
+                                icon={
+                                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 01-2 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2h2a2 2 0 012 2m0 10V7a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                }
+                            />
                         </div>
                     </div>
 
                     {/* Storage & Power Card */}
-                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl overflow-visible min-h-[220px]">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                                 <svg
@@ -474,98 +452,43 @@ function CreatePc() {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-visible">
                             {/* Storage */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
-                                        Storage
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="storageId"
-                                        value={form.storageId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select Storage</option>
-                                        {storages.map((storage: StorageDTO) => (
-                                            <option
-                                                key={storage.id}
-                                                value={storage.id}
-                                            >
-                                                {storage.storageType}{' '}
-                                                {storage.storageTotalGb}GB
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="Storage"
+                                placeholder="Select Storage"
+                                options={storageOptions}
+                                value={form.storageId}
+                                onChange={(value) => setForm(prev => ({ ...prev, storageId: value }))}
+                                required
+                                accentColor="cyan"
+                                icon={
+                                    <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                }
+                            />
 
                             {/* PSU */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
-                                        Power Supply (PSU)
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="psuId"
-                                        value={form.psuId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select PSU</option>
-                                        {psus.map((psu: PSUDTO) => (
-                                            <option key={psu.id} value={psu.id}>
-                                                {psu.psuModel} ({psu.psuWattage}
-                                                W)
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="Power Supply (PSU)"
+                                placeholder="Select PSU"
+                                options={psuOptions}
+                                value={form.psuId}
+                                onChange={(value) => setForm(prev => ({ ...prev, psuId: value }))}
+                                required
+                                accentColor="orange"
+                                icon={
+                                    <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                }
+                            />
                         </div>
                     </div>
 
                     {/* Cooling & Case Card */}
-                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl overflow-visible min-h-[320px]">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
                                 <svg
@@ -587,135 +510,54 @@ function CreatePc() {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-visible">
                             {/* CPU Cooler */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>
-                                        CPU Cooler
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="cpuCoolerId"
-                                        value={form.cpuCoolerId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">
-                                            Select CPU Cooler
-                                        </option>
-                                        {cpuCoolers.map(
-                                            (cooler: CPUCoolerDTO) => (
-                                                <option
-                                                    key={cooler.id}
-                                                    value={cooler.id}
-                                                >
-                                                    {cooler.coolingType} -{' '}
-                                                    {cooler.fanCount} fan(s)
-                                                </option>
-                                            ),
-                                        )}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="CPU Cooler"
+                                placeholder="Select CPU Cooler"
+                                options={cpuCoolerOptions}
+                                value={form.cpuCoolerId}
+                                onChange={(value) => setForm(prev => ({ ...prev, cpuCoolerId: value }))}
+                                required
+                                accentColor="indigo"
+                                icon={
+                                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                }
+                            />
 
                             {/* Case */}
-                            <div className="relative">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
-                                        PC Case
-                                    </span>
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        name="pcCaseId"
-                                        value={form.pcCaseId ?? ''}
-                                        onChange={handleSelectNumber}
-                                        required
-                                        className={selectClasses}
-                                    >
-                                        <option value="">Select Case</option>
-                                        {cases.map((pcCase: CaseDTO) => (
-                                            <option
-                                                key={pcCase.id}
-                                                value={pcCase.id}
-                                            >
-                                                {pcCase.caseModel} (
-                                                {pcCase.caseColor})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <ComponentSelect
+                                label="PC Case"
+                                placeholder="Select Case"
+                                options={caseOptions}
+                                value={form.pcCaseId}
+                                onChange={(value) => setForm(prev => ({ ...prev, pcCaseId: value }))}
+                                required
+                                accentColor="pink"
+                                icon={
+                                    <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10" />
+                                    </svg>
+                                }
+                            />
 
                             {/* Case Coolers - Multi-select */}
                             <div className="md:col-span-2">
-                                <label className={labelClasses}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-teal-400 rounded-full"></span>
-                                        Case Coolers (Hold Ctrl/Cmd to select
-                                        multiple)
-                                    </span>
-                                </label>
-                                <select
-                                    name="coolerIds"
-                                    multiple
-                                    value={form.coolerIds?.map(String) ?? []}
-                                    onChange={handleCoolerIdsChange}
-                                    className={`${selectClasses} min-h-[120px]`}
-                                >
-                                    {caseCoolers.map(
-                                        (cooler: CaseCoolerDTO) => (
-                                            <option
-                                                key={cooler.id}
-                                                value={cooler.id}
-                                                className="py-2"
-                                            >
-                                                {cooler.fanSize}mm -{' '}
-                                                {cooler.coolingColor ||
-                                                    'Standard'}
-                                            </option>
-                                        ),
-                                    )}
-                                </select>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Selected: {form.coolerIds?.length || 0}{' '}
-                                    cooler(s)
-                                </p>
+                                <MultiComponentSelect
+                                    label="Case Coolers"
+                                    placeholder="Click to add cooling fans..."
+                                    options={caseCoolerOptions}
+                                    value={form.coolerIds || []}
+                                    onChange={(value) => setForm(prev => ({ ...prev, coolerIds: value }))}
+                                    accentColor="teal"
+                                    icon={
+                                        <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    }
+                                />
                             </div>
                         </div>
                     </div>

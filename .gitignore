@@ -10,7 +10,8 @@
 /back/.idea/
 /back/target/
 /back/.env
-
+/back/docker-compose.override.yml
+/.idea/
 
 
 /front/node_modules

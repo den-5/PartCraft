@@ -45,4 +45,11 @@ export const pcApi = apiSlice.injectEndpoints({
     }),
 });
 
-export const { useCreatePCMutation } = pcApi;
+export const {
+    useGetPCQuery,
+    useCreatePCMutation,
+    useGetUserPCsQuery,
+    useUpdatePCFieldsMutation,
+    useUpdatePCComponentsMutation,
+    useDeletePCByIdMutation,
+} = pcApi;

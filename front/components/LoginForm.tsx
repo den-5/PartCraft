@@ -5,8 +5,7 @@ import { useLoginMutation } from '@/features/auth/authApi';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
-// Assuming you have this helper function defined for TypeScript safety
-import { isFetchBaseQueryError } from '@/utils/error-helpers';
+import { isFetchBaseQueryError, getErrorMessage } from '@/utils/error-helpers';
 
 export default function LoginForm() {
     const dispatch = useDispatch();
@@ -18,7 +17,6 @@ export default function LoginForm() {
     const [email, setEmail] = useState<string>('');
     const [emailError, setEmailError] = useState<string>('');
 
-    // 1. New state for general server errors
     const [generalError, setGeneralError] = useState<string>('');
 
     const [login, { isLoading }] = useLoginMutation();
@@ -27,7 +25,7 @@ export default function LoginForm() {
         let valid = true;
         setPasswordError('');
         setEmailError('');
-        setGeneralError(''); // Clear general error on validation/submit
+        setGeneralError('');
 
         if (!ValidateUserData.validatePassword(password)) {
             setPasswordError(
@@ -46,84 +44,120 @@ export default function LoginForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setGeneralError(''); // Clear previous error
+        setGeneralError('');
         if (!checkUserData()) return;
 
-        const user = await login({ password, email })
-            .unwrap()
-            .catch(error => {
-                // 3. Updated .catch() block to extract and set the server error
-                let serverMessage = 'Login failed due to an unknown error.';
-
-                if (isFetchBaseQueryError(error)) {
-                    // This block handles 4xx or 5xx responses
-                    // Assuming your server error response body is JSON like { message: "Invalid credentials" }
-                    const errorData = error.data as { message?: string };
-                    serverMessage =
-                        errorData.message || `Server Error ${error.status}`;
-                } else if (error instanceof Error) {
-                    // Fallback for general JavaScript/network errors
-                    serverMessage = error.message;
-                }
-
-                setGeneralError(serverMessage);
-                return undefined; // Return undefined to stop the success logic
-            });
-
-        if (user) {
-            dispatch(setCredentials(user));
+        try {
+            const userData = await login({ email, password }).unwrap();
+            dispatch(setCredentials(userData));
             router.push('/');
+        } catch (err) {
+            if (isFetchBaseQueryError(err)) {
+                setGeneralError(getErrorMessage(err));
+            } else {
+                setGeneralError('An unexpected error occurred.');
+            }
         }
     };
 
+    const inputClasses = 'w-full px-4 py-3 bg-gray-800/80 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200';
+
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="space-y-6 bg-gray-900 p-8 rounded-lg shadow-lg w-full max-w-md mx-auto"
-        >
+        <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email Field */}
             <div>
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                        Email
+                    </span>
+                </label>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className={`${inputClasses} pl-10`}
+                    />
+                </div>
                 {emailError && (
-                    <div className="text-red-400 text-sm mt-1">
+                    <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         {emailError}
                     </div>
                 )}
             </div>
+
+            {/* Password Field */}
             <div>
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                        Password
+                    </span>
+                </label>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className={`${inputClasses} pl-10`}
+                    />
+                </div>
                 {passwordError && (
-                    <div className="text-red-400 text-sm mt-1">
+                    <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         {passwordError}
                     </div>
                 )}
             </div>
+
+            {/* Submit Button */}
             <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full py-2 rounded font-semibold transition-colors ${
-                    isLoading
-                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-3"
             >
-                Log In
+                {isLoading ? (
+                    <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Signing in...
+                    </>
+                ) : (
+                    <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        </svg>
+                        Sign In
+                    </>
+                )}
             </button>
-            {/* 4. Display the new general server error state */}
+
+            {/* General Error */}
             {generalError && (
-                <div className="text-red-400 text-center mt-2">
-                    {generalError}
+                <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-4 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <p className="text-red-400 font-medium">{generalError}</p>
                 </div>
             )}
         </form>

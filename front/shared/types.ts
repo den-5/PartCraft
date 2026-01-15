@@ -42,12 +42,14 @@ export interface CPUDTO extends BaseComponentDTO {
     cpuThreads: number;
     cpuBaseClockGhz: number;
     cpuBoostClockGhz: number;
+    powerDraw: number;
 }
 
 export interface GPUDTO extends BaseComponentDTO {
     gpuBrand: string;
     gpuModel: string;
     gpuMemoryGb: number;
+    powerDraw: number;
 }
 
 export interface RAMKitDTO extends BaseComponentDTO {
