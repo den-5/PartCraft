@@ -6,6 +6,7 @@ export const userApi = apiSlice.injectEndpoints({
         // Get current authenticated user
         getMe: builder.query<UserDTO, void>({
             query: (): string => '/user/',
+            extraOptions: { maxRetries: 0 },
         }),
         // Get user by username
         getUserByUsername: builder.query<UserDTO, string>({

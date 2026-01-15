@@ -193,11 +193,33 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @Parameter(description = "Refresh token from HttpOnly cookie")
-            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
         refreshTokenService.deleteRefreshToken(refreshToken);
+
+        // Clear the cookies by setting maxAge to 0
+        ResponseCookie accessCookie = ResponseCookie.from("accessToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0) // Expire immediately
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0) // Expire immediately
+                .build();
+
+        response.addHeader("Set-Cookie", accessCookie.toString());
+        response.addHeader("Set-Cookie", refreshCookie.toString());
+
         return ResponseEntity.ok().build();
     }
 }

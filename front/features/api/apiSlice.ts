@@ -4,6 +4,9 @@ import { baseQueryWithReauth } from './customBaseQuery';
 export const apiSlice = createApi({
     reducerPath: 'api',
     baseQuery: baseQueryWithReauth,
-    tagTypes: ['Component', 'User', 'PC'], // Add 'Component' here
+    tagTypes: ['Component', 'User', 'PC'],
     endpoints: () => ({}),
+    refetchOnMountOrArgChange: false,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
 });

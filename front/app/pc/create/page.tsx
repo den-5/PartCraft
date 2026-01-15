@@ -1,7 +1,7 @@
 import React from 'react';
 import CreatePc from '@/components/CreatePC';
 
-function Page() {
+export default function Page() {
     return (
         <div>
             <CreatePc />
@@ -9,4 +9,4 @@ function Page() {
     );
 }
 
-export default Page;
+
