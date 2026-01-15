@@ -90,6 +90,7 @@ public class TestUtils {
         mb.setMotherboardModel("TestModel");
         mb.setChipset("TestChipset");
         mb.setSocketType(socketType);
+        mb.setMemoryType("DDR4");
         mb.setPowerDraw(50);
         return motherBoardRepository.save(mb).getId();
     }

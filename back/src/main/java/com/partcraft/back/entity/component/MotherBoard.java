@@ -11,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Table(name = "motherboard")
 public class MotherBoard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,6 +21,10 @@ public class MotherBoard {
     private String chipset;
     private String socketType;
     private String pictureUrl;
+
+    @Column(name = "memory_type")
+    private String memoryType;
+
     @Embedded
     private Size size;
     private Integer powerDraw;
@@ -28,6 +33,7 @@ public class MotherBoard {
         this.motherboardBrand = dto.getMotherboardBrand();
         this.motherboardModel = dto.getMotherboardModel();
         this.chipset = dto.getChipset();
+        this.memoryType = dto.getMemoryType();
         this.socketType = dto.getSocketType();
         this.pictureUrl = dto.getPictureUrl();
         if (dto.getSize() != null) {

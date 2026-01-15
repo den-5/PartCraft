@@ -2,11 +2,7 @@ package com.partcraft.back.entity.component;
 
 import com.partcraft.back.dto.componentDTO.RAMKitDTO;
 import com.partcraft.back.entity.component.helper.Size;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Table(name = "ram_kit")
 public class RAMKit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

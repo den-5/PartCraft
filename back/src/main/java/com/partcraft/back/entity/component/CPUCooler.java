@@ -12,6 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Table(name = "cpu_cooler")
 public class CPUCooler {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

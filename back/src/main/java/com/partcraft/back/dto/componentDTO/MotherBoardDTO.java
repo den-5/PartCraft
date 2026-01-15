@@ -25,6 +25,7 @@ public class MotherBoardDTO {
         this.motherboardBrand = mb.getMotherboardBrand();
         this.motherboardModel = mb.getMotherboardModel();
         this.chipset = mb.getChipset();
+        this.memoryType = mb.getMemoryType();
         this.socketType = mb.getSocketType();
         this.pictureUrl = mb.getPictureUrl();
         if (mb.getSize() != null) {
