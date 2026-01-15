@@ -1,0 +1,55 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: partcraft-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: part-craft
+    networks:
+      - partcraft-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: partcraft-redis
+    networks:
+      - partcraft-network
+
+  back:
+    # Pulls the image we built in GitLab CI
+    image: ${CI_REGISTRY_IMAGE}/api:latest
+    container_name: partcraft-api
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/part-craft?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      # Add JWT/Google secrets here if they aren't baked in
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    networks:
+      - partcraft-network
+
+  front:
+    # Pulls the image we built in GitLab CI
+    image: ${CI_REGISTRY_IMAGE}/ui:latest
+    container_name: partcraft-ui
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # This is for server-side fetches. Client-side variables must be baked in during BUILD.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    networks:
+      - partcraft-network
+
+networks:
+  partcraft-network:
+    driver: bridge

@@ -1,0 +1,61 @@
+services:
+  # 1. Database
+  mysql:
+    image: mysql:8.4
+    container_name: partcraft-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: part-craft
+    ports:
+      - "3307:3306" # Maps localhost:3307 -> internal 3306
+    networks:
+      - partcraft-network
+
+  # 2. Redis
+  redis:
+    image: redis:7-alpine
+    container_name: partcraft-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - partcraft-network
+
+  # 3. Backend (Java Spring Boot)
+  back:
+    build: ./back  # 👈 CHANGED: Points to the 'back' subfolder
+    container_name: partcraft-api
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      # ⚠️ CRITICAL: Inside Docker, we must use 'mysql' host and port 3306
+      # This overrides your application.properties 'localhost:3307' setting
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/part-craft?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATA_REDIS_HOST: redis
+    networks:
+      - partcraft-network
+
+  # 4. Frontend (Next.js)
+  front:
+    build: ./front  # 👈 CHANGED: Points to the 'front' subfolder
+    container_name: partcraft-ui
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # This tells the browser where to find the API
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+    depends_on:
+      - back
+    networks:
+      - partcraft-network
+
+networks:
+  partcraft-network:
+    driver: bridge

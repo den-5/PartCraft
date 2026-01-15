@@ -1,49 +1,34 @@
 stages:
   - build
-  - test
   - deploy
 
 variables:
-  MAVEN_CLI_OPTS: "-B -q"
   DOCKER_HOST: "tcp://docker:2375"
   DOCKER_TLS_CERTDIR: ""
+  # Define image names for clarity
+  IMAGE_TAG_API: "$CI_REGISTRY_IMAGE/api:latest"
+  IMAGE_TAG_UI: "$CI_REGISTRY_IMAGE/ui:latest"
 
 services:
-  # Pinned for Testcontainers stability
   - name: docker:24-dind
     command: ["--tls=false"]
 
 build:
   stage: build
-  image: maven:3.9.6-eclipse-temurin-21
+  image: docker:24
   before_script:
-    # FIX: Re-adding the necessary Docker client installation
-    - apt-get update -y && apt-get install -y docker.io
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   script:
-    - export LOWERCASE_PROJECT_PATH=$(echo "$CI_PROJECT_PATH" | tr '[:upper:]' '[:lower:]')
-    - export IMAGE_TAG="registry.gitlab.com/${LOWERCASE_PROJECT_PATH}/api:latest"
-    
-    # 1. Build the Java app
-    - mvn $MAVEN_CLI_OPTS -f back/pom.xml clean package -DskipTests
-    
-    # 2. Login, Build, and Push Docker Image
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    - docker build -t $IMAGE_TAG back
-    - docker push $IMAGE_TAG
-  only:
-    - main
+    # --- 1. BACKEND ---
+    - echo "Building Backend..."
+    - docker build -t $IMAGE_TAG_API ./back
+    - docker push $IMAGE_TAG_API
 
-test:
-  stage: test
-  image: maven:3.9.6-eclipse-temurin-21
-  services:
-    - name: docker:24-dind
-      command: ["--tls=false"]
-  variables:
-    TESTCONTAINERS_RYUK_DISABLED: "true"
-  script:
-    - export DOCKER_HOST="tcp://docker:2375"
-    - mvn $MAVEN_CLI_OPTS -f back/pom.xml test
+    # --- 2. FRONTEND ---
+    - echo "Building Frontend..."
+    # IMPORTANT: We must bake the API URL into the Next.js image at build time
+    - docker build --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL -t $IMAGE_TAG_UI ./front
+    - docker push $IMAGE_TAG_UI
   only:
     - main
 
@@ -53,41 +38,33 @@ deploy:
   before_script:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
-    - cat "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
-    - scp -o StrictHostKeyChecking=no back/docker-compose.yml $SSH_USER@$SSH_HOST:~/PartCraft/docker-compose.yml
+    # 1. Send the PRODUCTION compose file (renaming it to docker-compose.yml on destination)
+    - scp -o StrictHostKeyChecking=no docker-compose.prod.yml $SSH_USER@$SSH_HOST:~/PartCraft/docker-compose.yml
+
+    # 2. SSH in to restart
     - |
       ssh $SSH_USER@$SSH_HOST "
         cd ~/PartCraft &&
-        
-        # 1. Ensure V2 Plugin is installed (Idempotent)
-        mkdir -p ~/.docker/cli-plugins
-        if [ ! -f ~/.docker/cli-plugins/docker-compose ]; then
-            curl -SL https://github.com/docker/compose/releases/download/v2.29.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
-            chmod +x ~/.docker/cli-plugins/docker-compose
-        fi
+      
+        # Login to GitLab Registry so the server can download the private images
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
 
-        # 2. Export Environment Variables
+        # Set Server-Side Environment Variables
+        export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE
+        export MYSQL_ROOT_PASSWORD='root'
         export JWT_SECRET=\"$JWT_SECRET\"
         export GOOGLE_CLIENT_ID=\"$GOOGLE_CLIENT_ID\"
         export GOOGLE_CLIENT_SECRET=\"$GOOGLE_CLIENT_SECRET\"
-        export SPRING_DATASOURCE_URL=\"$SPRING_DATASOURCE_URL\"
-        export SPRING_DATASOURCE_USERNAME=\"$SPRING_DATASOURCE_USERNAME\"
-        export SPRING_DATASOURCE_PASSWORD=\"$SPRING_DATASOURCE_PASSWORD\"
-        export SPRING_PROFILES_ACTIVE=\"prod\"
-        
-        # 3. CLEANUP: Stop and remove old containers to fix 'Conflict' error
-        # We try both V1 and V2 down commands to be safe
-        docker compose down --remove-orphans || true
-        
-        # Explicitly remove the specific conflicting container if 'down' missed it
-        docker rm -f partcraft-api || true
-        docker rm -f fc4801a8aef2_partcraft-api || true
+        export NEXT_PUBLIC_API_URL=\"$NEXT_PUBLIC_API_URL\"
 
-        # 4. Deploy
-        docker compose pull
+        # Pull the new images
+        docker compose pull &&
+
+        # Restart everything (removes old containers automatically)
         docker compose up -d --remove-orphans
       "
   only:
