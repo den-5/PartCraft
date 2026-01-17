@@ -67,7 +67,8 @@ public class SecurityConfig {
                                 "http://localhost:3000",
                                 "http://127.0.0.1:3000",
                                 "http://20.19.80.10",
-                                "http://20.19.80.10:8080"
+                                "http://20.19.80.10:8080",
+                                "http://20.19.80.10:3000"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowCredentials(true);

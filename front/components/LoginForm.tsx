@@ -21,6 +21,8 @@ export default function LoginForm() {
 
     const [login, { isLoading }] = useLoginMutation();
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
     function checkUserData(): boolean {
         let valid = true;
         setPasswordError('');
@@ -173,7 +175,7 @@ export default function LoginForm() {
 
             {/* Google Sign-In Button */}
             <a
-                href="http://localhost:8080/oauth2/authorization/google"
+                href={`${API_URL}/oauth2/authorization/google`}
                 className="w-full py-3 px-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-3"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

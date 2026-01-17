@@ -1,14 +1,14 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { ValidateUserData } from '@/utils/ValidateUserData';
+import React, {useEffect, useState} from 'react';
+import {ValidateUserData} from '@/utils/ValidateUserData';
 import {
     useSignupMutation,
     useUsernameAvailabilityQuery,
 } from '@/features/auth/authApi';
-import { useDispatch } from 'react-redux';
-import { setCredentials } from '@/features/auth/authSlice';
-import { useRouter } from 'next/navigation';
-import { getErrorMessage } from '@/utils/error-helpers';
+import {useDispatch} from 'react-redux';
+import {setCredentials} from '@/features/auth/authSlice';
+import {useRouter} from 'next/navigation';
+import {getErrorMessage} from '@/utils/error-helpers';
 
 export default function SignUpForm() {
     const dispatch = useDispatch();
@@ -25,9 +25,11 @@ export default function SignUpForm() {
 
     const [generalError, setGeneralError] = useState<string>('');
 
-    const [signUp, { isLoading }] = useSignupMutation();
+    const [signUp, {isLoading}] = useSignupMutation();
 
     const [isDataValid, setIsDataValid] = useState<boolean>(false);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
     const {
         data: isUsernameAvailable,
@@ -90,7 +92,7 @@ export default function SignUpForm() {
         setGeneralError('');
         if (!checkUserData()) return;
 
-        const user = await signUp({ username, password, email })
+        const user = await signUp({username, password, email})
             .unwrap()
             .catch(err => {
                 const msg = getErrorMessage(err);
@@ -141,7 +143,8 @@ export default function SignUpForm() {
                     />
                     {isUsernameChecking && (
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div
+                                className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     )}
                 </div>
@@ -277,7 +280,8 @@ export default function SignUpForm() {
             >
                 {isLoading ? (
                     <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div
+                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Creating account...
                     </>
                 ) : (
@@ -334,7 +338,7 @@ export default function SignUpForm() {
 
             {/* Google Sign-Up Button */}
             <a
-                href="http://localhost:8080/oauth2/authorization/google"
+                href={`${API_URL}/oauth2/authorization/google`}
                 className="w-full py-3 px-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-3"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

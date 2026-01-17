@@ -9,8 +9,10 @@ import { logout } from '../auth/authSlice';
 
 const mutex = new Mutex();
 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 const baseQuery = fetchBaseQuery({
-    baseUrl: 'http://localhost:8080/api',
+    baseUrl: `${baseUrl}/api`,
     credentials: 'include',
 });
 
