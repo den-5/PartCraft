@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -41,44 +42,42 @@ public class AuthController {
         this.refreshTokenService = refreshTokenService;
     }
 
+    // Helper method to ensure Cookie consistency between Login, Signup, and OAuth2
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken)
                 .httpOnly(true)
-                .secure(false)       // FIX: Must be false for HTTP (non-SSL) connections
+                .secure(false)       // False for Localhost / True for Production (HTTPS)
                 .path("/")
-                .sameSite("Lax")     // FIX: 'Lax' is more compatible than 'Strict' for browser flows
+                .sameSite("Lax")     // Must match what is used in OAuth2AuthenticationSuccessHandler
                 .maxAge(1800)        // 30 min
                 .build();
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false)       // FIX: Must be false for HTTP
+                .secure(false)
                 .path("/")
-                .sameSite("Lax")     // FIX: 'Lax'
+                .sameSite("Lax")
                 .maxAge(86400)       // 1 day
                 .build();
 
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
     @Operation(
             summary = "User login",
-            description = "Authenticates a user with email and password. Returns user data and sets HttpOnly cookies for access and refresh tokens.\n\n" +
-                    "**Email format:** local-part@domain.tld (TLD must be at least 2 characters)\n\n" +
-                    "**Password format:** Minimum 8 characters, must contain at least one digit, one lowercase letter, one uppercase letter, and one special character. No whitespace allowed."
+            description = "Authenticates a user with email and password."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully authenticated. User data returned in body, tokens set as HttpOnly cookies.",
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid email or password (authentication failed)",
+            @ApiResponse(responseCode = "400", description = "Invalid credentials",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Spring Security authentication exception",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping("/login")
     public ResponseEntity<UserDTO> login(
-            @Parameter(description = "Login credentials containing email and password", required = true)
+            @Parameter(description = "Login credentials", required = true)
             @RequestBody LoginRequestDTO request,
             HttpServletResponse response) throws AuthException {
 
@@ -97,20 +96,16 @@ public class AuthController {
 
     @Operation(
             summary = "Create a new user account",
-            description = "Registers a new user account with the provided information. Returns user data and sets HttpOnly cookies for access and refresh tokens.\n\n" +
-                    "**Email format:** local-part@domain.tld (TLD must be at least 2 characters)\n\n" +
-                    "**Username format:** 5-20 alphanumeric characters only (no special characters or spaces)\n\n" +
-                    "**Password format:** Minimum 8 characters, must contain at least one digit, one lowercase letter, one uppercase letter, and one special character. No whitespace allowed."
+            description = "Registers a new user account."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User successfully created. User data returned in body, tokens set as HttpOnly cookies.",
+            @ApiResponse(responseCode = "200", description = "User successfully created.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid user data (validation error), user already exists, or service error",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class)))
+            @ApiResponse(responseCode = "400", description = "Validation error")
     })
     @PostMapping("/sign-up")
     public ResponseEntity<UserDTO> signUp(
-            @Parameter(description = "User registration data including email, username, and password", required = true)
+            @Parameter(description = "User registration data", required = true)
             @RequestBody CreateUserDTO request,
             HttpServletResponse response) {
         var authResponseDTO = userService.createUser(request);
@@ -121,15 +116,8 @@ public class AuthController {
 
     @Operation(
             summary = "Refresh access token",
-            description = "Generates new access and refresh tokens using the refresh token from the cookie. The old refresh token is invalidated and new tokens are set as HttpOnly cookies."
+            description = "Generates new tokens using the refresh token cookie."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tokens successfully refreshed. New tokens set as HttpOnly cookies."),
-            @ApiResponse(responseCode = "400", description = "Invalid or missing refresh token",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = com.partcraft.back.util.ErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Spring Security authentication exception",
-                    content = @Content(mediaType = "application/json"))
-    })
     @GetMapping("/refresh")
     public ResponseEntity<Void> refresh(
             HttpServletResponse response,
@@ -149,64 +137,45 @@ public class AuthController {
         throw new AuthException("Invalid refresh token");
     }
 
-    @Operation(
-            summary = "Check username availability",
-            description = "Checks if the specified username is available for registration. Returns true if the username is available (not taken), false if already in use.\n\n" +
-                    "**Username format:** 5-20 alphanumeric characters only (no special characters or spaces)"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully checked username availability. Returns true if available, false if taken.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class, example = "true")))
-    })
+    @Operation(summary = "Check username availability")
     @GetMapping("/username-availability/{username}")
-    public ResponseEntity<Boolean> isUsernameAvailable(
-            @Parameter(description = "Username to check (5-20 alphanumeric characters)", required = true, example = "john_doe")
-            @PathVariable String username) {
+    public ResponseEntity<Boolean> isUsernameAvailable(@PathVariable String username) {
         return ResponseEntity.ok().body(userService.verifyUsernameAvailability(username));
     }
 
-    @Operation(
-            summary = "Check email availability",
-            description = "Checks if the specified email is available for registration. Returns true if the email is available (not registered), false if already in use.\n\n" +
-                    "**Email format:** local-part@domain.tld (TLD must be at least 2 characters)"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully checked email availability. Returns true if available, false if taken.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class, example = "true")))
-    })
+    @Operation(summary = "Check email availability")
     @GetMapping("/email-availability/{email}")
-    public ResponseEntity<Boolean> isEmailAvailable(
-            @Parameter(description = "Email address to check (format: local-part@domain.tld)", required = true, example = "user@example.com")
-            @PathVariable String email) {
+    public ResponseEntity<Boolean> isEmailAvailable(@PathVariable String email) {
         return ResponseEntity.ok().body(userService.verifyEmailAvailability(email));
     }
 
     @Operation(
-            summary = "Logout user (invalidate refresh token)",
-            description = "Logs out the user by deleting the provided refresh token from the database or Redis. Only the current session/device is affected. Other devices remain logged in."
+            summary = "Logout user",
+            description = "Invalidates tokens and clears ALL cookies (including JSESSIONID for OAuth users)."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully logged out. Refresh token invalidated."),
-            @ApiResponse(responseCode = "400", description = "No refresh token provided or invalid token",
-                    content = @Content(mediaType = "application/json"))
-    })
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @Parameter(description = "Refresh token from HttpOnly cookie")
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        refreshTokenService.deleteRefreshToken(refreshToken);
 
-        // Clear the cookies by setting maxAge to 0
+        // 1. Invalidate Token in DB (if exists)
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            try {
+                refreshTokenService.deleteRefreshToken(refreshToken);
+            } catch (Exception e) {
+                // Ignore DB errors during logout, prioritize clearing cookies
+            }
+        }
+
+        // 2. Create "Death Cookies" (Max-Age 0)
+        // CRITICAL: Attributes (Path, Secure, SameSite) must match creation EXACTLY
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(false) // Match Login/OAuth settings
                 .path("/")
                 .sameSite("Lax")
-                .maxAge(0) // Expire immediately
+                .maxAge(0)     // Delete immediately
                 .build();
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
@@ -214,11 +183,20 @@ public class AuthController {
                 .secure(false)
                 .path("/")
                 .sameSite("Lax")
-                .maxAge(0) // Expire immediately
+                .maxAge(0)
                 .build();
 
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        // 3. Kill the OAuth2/Spring Session ID
+        // This prevents Google Login from auto-reconnecting without a prompt
+        ResponseCookie sessionCookie = ResponseCookie.from("JSESSIONID", "")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        // 4. Send Headers
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
 
         return ResponseEntity.ok().build();
     }

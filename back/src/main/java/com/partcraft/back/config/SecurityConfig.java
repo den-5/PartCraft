@@ -1,8 +1,6 @@
-// SecurityConfig.java
 package com.partcraft.back.config;
 
 import com.partcraft.back.security.JwtAuthFilter;
-import com.partcraft.back.security.JwtUtils;
 import com.partcraft.back.security.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -11,30 +9,29 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(JwtUtils jwtUtils, UserDetailsService userDetailsService) {
-        return new JwtAuthFilter(jwtUtils, userDetailsService);
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter, OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthFilter jwtAuthFilter,
+                                           OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
@@ -45,16 +42,18 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized")
                         )
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Error: Forbidden")
                         )
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                // Ensure JWT filter runs after the Session is restored so we can overwrite it
+                .addFilterAfter(jwtAuthFilter, SecurityContextHolderFilter.class);
+
         return http.build();
     }
 
@@ -65,10 +64,10 @@ public class SecurityConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-                            "http://localhost:3000",      // Original local frontend
-                            "http://127.0.0.1:3000",      // Alternative local frontend address
-                            "http://20.19.80.10",         // Deployed IP (if accessed without port 8080/default)
-                            "http://20.19.80.10:8080"     // Deployed API address (for Swagger)
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000",
+                                "http://20.19.80.10",
+                                "http://20.19.80.10:8080"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowCredentials(true);

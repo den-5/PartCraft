@@ -149,11 +149,11 @@ public class UserService {
             user.setEmail(email);
             user.setUsername(generateUniqueUsername(name));
             user.setRole(UserRole.USER);
-            userRepository.save(user);
+            user = userRepository.save(user); // Use returned saved entity to ensure all fields are populated
         } else {
             if (email != null && !email.equals(user.getEmail())) {
                 user.setEmail(email);
-                userRepository.save(user);
+                user = userRepository.save(user);
             }
         }
         return user;

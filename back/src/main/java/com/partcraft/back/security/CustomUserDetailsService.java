@@ -2,47 +2,45 @@ package com.partcraft.back.security;
 
 import com.partcraft.back.entity.User;
 import com.partcraft.back.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.*;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
 
-    protected CustomUserDetailsService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    public CustomUserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
     }
 
-    // Loads user by username for authentication
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        try {
-            User user = userRepository.findUserByUsername(username).orElse(null);
-            if (user == null) {
-                throw new UsernameNotFoundException(username);
-            }
-            // Allow null password for OAuth2 users
-            String password = user.getPassword();
-            if (user.getGoogleId() != null) {
-                password = password == null ? "" : password; // Spring requires non-null, but will not check password for OAuth2
-            }
-            return org.springframework.security.core.userdetails.User
-                    .withUsername(user.getUsername())
-                    .password(password)
-                    .roles(String.valueOf(user.getRole()))
-                    .build();
-        } catch (Exception e) {
-            if (e instanceof UsernameNotFoundException) {
-                throw new UsernameNotFoundException(e.getMessage());
-            } else {
-                throw new UnknownError(e.getMessage());
-            }
+        // 1. Fetch User
+        User user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // 3. Robust Role Handling
+        String roleName = "USER"; // Default fallback
+        if (user.getRole() != null) {
+            roleName = user.getRole().name(); // Safely get enum name (e.g., "ADMIN", "USER")
         }
 
+        // 4. Handle Password (OAuth2 users often have null passwords)
+        String password = user.getPassword();
+        if (password == null) {
+            password = "";
+        }
+
+        // 5. Build UserDetails
+        // .roles() automatically adds the "ROLE_" prefix.
+        // So .roles("USER") becomes authority "ROLE_USER"
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getUsername())
+                .password(password)
+                .roles(roleName)
+                .build();
     }
 }
