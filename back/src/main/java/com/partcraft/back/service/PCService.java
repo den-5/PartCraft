@@ -65,6 +65,9 @@ public class PCService {
             if (pc.getCpuCooler() != null) {
                 compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
             }
+            if (pc.getPsu() != null){
+                compatibilityService.isPSUCompatible(mapToDTO(pc), new PSUDTO(pc.getPsu()));
+            }
         } catch (ComponentCompatibilityServiceException e) {
             throw new PCServiceException("Component compatibility error: " + e.getMessage());
         }
@@ -106,6 +109,9 @@ public class PCService {
             }
             if (pc.getCpuCooler() != null) {
                 compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
+            }
+            if (pc.getPsu() != null){
+                compatibilityService.isPSUCompatible(mapToDTO(pc), new PSUDTO(pc.getPsu()));
             }
         } catch (ComponentCompatibilityServiceException e) {
             throw new PCServiceException("Component compatibility error: " + e.getMessage());

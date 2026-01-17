@@ -16,6 +16,7 @@ import java.util.Optional;
 public class ComponentCompatibilityService {
 
     public boolean isCpuAndMotherboardCompatible(CPUDTO cpu, MotherBoardDTO motherboard) {
+
         if (motherboard.getSocketType() == null || cpu.getSocketType() == null) {
             throw new ComponentCompatibilityServiceException("CPU or motherboard socket type is null");
         }
@@ -26,6 +27,7 @@ public class ComponentCompatibilityService {
     }
 
     public boolean isMotherboardAndRAMCompatible(MotherBoardDTO motherboard, RAMKitDTO ramKit) {
+
         if (motherboard.getMemoryType() == null || ramKit.getRamType() == null) {
             throw new ComponentCompatibilityServiceException("Motherboard or RAM memory type is null");
         }
@@ -36,6 +38,7 @@ public class ComponentCompatibilityService {
     }
 
     public boolean isGPUAndCaseCompatible(GPUDTO gpu, CaseDTO pcCase) {
+
         var gpuSize = gpu.getSize();
         var gpuPlacement = pcCase.getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "GPU"))
@@ -48,6 +51,7 @@ public class ComponentCompatibilityService {
     }
 
     public Optional<List<CaseCoolerDTO>> checkCaseCoolersAndCaseCompatibility(CaseCoolerDTO[] caseCoolers, CaseDTO pcCase, CPUCoolerDTO cpuCooler) {
+
         var places = pcCase.getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .toList();
@@ -65,6 +69,7 @@ public class ComponentCompatibilityService {
     }
 
     public boolean isCPUCoolerCompatible(PCDTO pc, CPUCoolerDTO cpuCooler) {
+
         if (cpuCooler.getCoolingType() == null) {
             throw new ComponentCompatibilityServiceException("CPU cooler cooling type is null");
         }
@@ -86,28 +91,31 @@ public class ComponentCompatibilityService {
                 throw new ComponentCompatibilityServiceException("CPU cooler does not fit in the case");
             }
 
-            boolean isCoolerMaxTDPHigherThanCPUMaxTDP = cpuCooler.getMaxTDP() >= pc.getCpu().getPowerDraw();
 
-            if (!isCoolerMaxTDPHigherThanCPUMaxTDP) {
+            if (cpuCooler.getMaxTDP() < pc.getCpu().getPowerDraw()) {
                 throw new ComponentCompatibilityServiceException("CPU cooler TDP (" + cpuCooler.getMaxTDP() + "W) is insufficient for CPU power draw (" + pc.getCpu().getPowerDraw() + "W)");
             }
-
-            boolean isCoolerAndMotherBoardSocketCompatible = cpuCooler.getCpuSocket().equals(pc.getCpu().getSocketType());
-
-            if (!isCoolerAndMotherBoardSocketCompatible) {
+            if (!cpuCooler.getCpuSocket().equals(pc.getCpu().getSocketType())) {
                 throw new ComponentCompatibilityServiceException("CPU cooler socket (" + cpuCooler.getCpuSocket() + ") does not match CPU socket (" + pc.getCpu().getSocketType() + ")");
             }
 
             return true;
         }
-        // Liquid cooler logic
+
+
+
         var slotsInPCCase = pc.getPcCase().getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .filter(component -> component.getMaxSize().getWidth() >= cpuCooler.getSize().getWidth())
                 .filter(component -> component.getMaxSize().getHeight() >= cpuCooler.getSize().getHeight())
                 .toList();
 
-        //x 0 == right x -1 == left, y 0 == bottom y -1 == top;
+
+        int slotsToConsume = (cpuCooler.getCaseCoolerSlotsRequired() != null && cpuCooler.getCaseCoolerSlotsRequired() > 0)
+                ? cpuCooler.getCaseCoolerSlotsRequired()
+                : cpuCooler.getFanCount();
+
+
         Long maxAvailableSlotsInTheRow = Math.max(
                 Math.max(slotsInPCCase.stream().filter(c -> c.getX() == 0).count(),
                         slotsInPCCase.stream().filter(c -> c.getY() == 0).count()),
@@ -115,22 +123,18 @@ public class ComponentCompatibilityService {
                         slotsInPCCase.stream().filter(c -> c.getY() == -1).count())
         );
 
-        boolean isEnoughSlotsInCase = cpuCooler.getCaseCoolerSlotsRequired() <= maxAvailableSlotsInTheRow;
-
-        if (!isEnoughSlotsInCase) {
-            throw new ComponentCompatibilityServiceException("Not enough case cooler slots for liquid CPU cooler radiator. Required: " + cpuCooler.getCaseCoolerSlotsRequired() + ", available: " + maxAvailableSlotsInTheRow);
+        if (slotsToConsume > maxAvailableSlotsInTheRow) {
+            throw new ComponentCompatibilityServiceException("Not enough contiguous slots for radiator. Required: " + slotsToConsume + ", available in row: " + maxAvailableSlotsInTheRow);
         }
 
-        boolean isEnoughSlotsLeft = false;
 
-        // Logic to check if there is enough space left for case coolers
         var places = new ArrayList<>(pc.getPcCase().getComponentPlacements().stream()
                 .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
                 .toList());
 
         int removedElements = 0;
         int i = 0;
-        while (removedElements < cpuCooler.getCaseCoolerSlotsRequired() && i < places.size()) {
+        while (removedElements < slotsToConsume && i < places.size()) {
             if (places.get(i).getMaxSize().getHeight() >= cpuCooler.getSize().getHeight()) {
                 places.remove(i);
                 removedElements++;
@@ -139,33 +143,61 @@ public class ComponentCompatibilityService {
             }
         }
 
+
         List<CaseCoolerDTO> coolersLeft = new ArrayList<>(pc.getCoolers());
         for (var place : places) {
             for (int j = 0; j < coolersLeft.size(); j++) {
-                if (place.getMaxSize().getHeight() >= pc.getCoolers().get(j).getSize().getHeight()) {
-                    coolersLeft.remove(pc.getCoolers().get(j));
+                if (place.getMaxSize().getHeight() >= coolersLeft.get(j).getSize().getHeight()) {
+                    coolersLeft.remove(j);
                     break;
                 }
             }
         }
-        isEnoughSlotsLeft = coolersLeft.isEmpty();
 
-        if (!isEnoughSlotsLeft) {
-            throw new ComponentCompatibilityServiceException("Not enough space for existing case coolers after installing liquid CPU cooler radiator. Remaining coolers: " + coolersLeft.size());
+        if (!coolersLeft.isEmpty()) {
+            throw new ComponentCompatibilityServiceException("Not enough space for existing case coolers after installing liquid CPU cooler. Remaining coolers: " + coolersLeft.size());
         }
 
-        if (!pc.getMotherboard().getSocketType().equals(cpuCooler.getCpuSocket())) {
-            throw new ComponentCompatibilityServiceException("CPU cooler socket (" + cpuCooler.getCpuSocket() + ") does not match motherboard socket (" + pc.getMotherboard().getSocketType() + ")");
-        }
 
         if (pc.getCpu().getPowerDraw() > cpuCooler.getMaxTDP()) {
             throw new ComponentCompatibilityServiceException("CPU cooler TDP (" + cpuCooler.getMaxTDP() + "W) is insufficient for CPU power draw (" + pc.getCpu().getPowerDraw() + "W)");
         }
 
+
+        if (!pc.getMotherboard().getSocketType().equals(cpuCooler.getCpuSocket())) {
+            throw new ComponentCompatibilityServiceException("CPU cooler socket (" + cpuCooler.getCpuSocket() + ") does not match motherboard socket (" + pc.getMotherboard().getSocketType() + ")");
+        }
+
         return true;
     }
+    public boolean isPSUCompatible(PCDTO pc, PSUDTO psu) {
+        if (psu == null) return true;
 
-    public boolean isPSUCompatible() {
+        int totalPowerDraw = 0;
+
+
+        if (pc.getCpu() != null) totalPowerDraw += pc.getCpu().getPowerDraw();
+        if (pc.getGpu() != null) totalPowerDraw += pc.getGpu().getPowerDraw();
+        if (pc.getMotherboard() != null) totalPowerDraw += pc.getMotherboard().getPowerDraw();
+        if (pc.getRamKit() != null) totalPowerDraw += pc.getRamKit().getPowerDraw();
+        if (pc.getStorage() != null) totalPowerDraw += pc.getStorage().getPowerDraw() * pc.getStorage().getStorageCount();
+        if (pc.getCpuCooler() != null) totalPowerDraw += pc.getCpuCooler().getPowerDraw();
+
+
+        if (pc.getCoolers() != null) {
+            totalPowerDraw += pc.getCoolers().stream()
+                    .mapToInt(cooler -> cooler.getPowerDraw() != null ? cooler.getPowerDraw() : 0) // Check for null!
+                    .sum();
+        }
+
+        boolean isCompatible = psu.getPsuWattage() >= totalPowerDraw * 1.2 + 100;
+
+        if (!isCompatible) {
+            throw new ComponentCompatibilityServiceException(
+                    "PSU Wattage (" + psu.getPsuWattage() + "W) is insufficient for Total System Power (" + totalPowerDraw + "W)"
+            );
+        }
+
         return true;
     }
 }
