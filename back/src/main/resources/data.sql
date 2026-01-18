@@ -13,6 +13,8 @@ INSERT IGNORE INTO `case` (id, case_model, picture_url, power_draw, width, lengt
 (9, 'Lian Li Lancool 216', 'https://m.media-amazon.com/images/I/71+z+7LL.jpg', 0, 235.0, 480.0, 491.0),
 (10, 'Fractal Design Torrent', 'https://m.media-amazon.com/images/I/71+a+7LL.jpg', 0, 242.0, 544.0, 530.0);
 
+DELETE FROM component_placement;
+
 INSERT IGNORE INTO component_placement (case_id, component_type, x, y, z, rotation, width, length, height) SELECT id, 'CaseCooler', 0, 0, 0, 0, 120.0, 120.0, 100.0 FROM `case`;
 INSERT IGNORE INTO component_placement (case_id, component_type, x, y, z, rotation, width, length, height) SELECT id, 'CaseCooler', 0, 0, 1, 0, 120.0, 120.0, 100.0 FROM `case`;
 INSERT IGNORE INTO component_placement (case_id, component_type, x, y, z, rotation, width, length, height) SELECT id, 'CaseCooler', 0, 0, 2, 0, 120.0, 120.0, 100.0 FROM `case`;

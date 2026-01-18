@@ -155,7 +155,9 @@ public class ComponentCompatibilityService {
         }
 
         if (!coolersLeft.isEmpty()) {
-            throw new ComponentCompatibilityServiceException("Not enough space for existing case coolers after installing liquid CPU cooler. Remaining coolers: " + coolersLeft.size());
+            throw new ComponentCompatibilityServiceException(
+                    "Not enough fan slots available. After installing the Liquid Cooler, " + coolersLeft.size() + " case fans no longer fit (Overflow)."
+            );
         }
 
 
