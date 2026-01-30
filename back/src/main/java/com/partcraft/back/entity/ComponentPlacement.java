@@ -2,6 +2,7 @@ package com.partcraft.back.entity;
 
 import com.partcraft.back.entity.component.helper.Size;
 import com.partcraft.back.entity.component.Case;
+import com.partcraft.back.enums.ComponentType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,8 +21,9 @@ public class ComponentPlacement {
     @JoinColumn(name = "case_id")
     private Case pcCase;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String componentType; // e.g., "CPU", "GPU", etc.
+    private ComponentType componentType;
     @Embedded
     private Size maxSize;
 

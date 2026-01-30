@@ -3,12 +3,11 @@ package com.partcraft.back.security;
 import com.partcraft.back.dto.AuthResponseDTO;
 import com.partcraft.back.entity.User;
 import com.partcraft.back.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.partcraft.back.util.CookieUtils;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value; // Added import
-import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -20,15 +19,14 @@ import java.io.IOException;
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
-    private final ObjectMapper objectMapper;
+    private final CookieUtils cookieUtils;
 
-    // Inject frontend URL from properties, default to localhost:3000 if not found
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    public OAuth2AuthenticationSuccessHandler(UserService userService, ObjectMapper objectMapper) {
+    public OAuth2AuthenticationSuccessHandler(UserService userService, CookieUtils cookieUtils) {
         this.userService = userService;
-        this.objectMapper = objectMapper;
+        this.cookieUtils = cookieUtils;
     }
 
     @Override
@@ -38,34 +36,16 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
 
-        // 1. Find or create user by Google ID
+        // Find or create user by Google ID
         User user = userService.findOrCreateGoogleUser(googleId, email, name);
 
-        // 2. Generate tokens
+        // Generate tokens
         AuthResponseDTO authResponse = userService.generateTokensForUser(user);
 
-        // 3. Set cookies (HttpOnly, Lax, Secure=false for localhost)
-        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", authResponse.getTokens().getAccessToken())
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(1800) // 30 minutes
-                .build();
+        // Set cookies using centralized utility
+        cookieUtils.setAuthCookies(response, authResponse.getTokens().getAccessToken(), authResponse.getTokens().getRefreshToken());
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", authResponse.getTokens().getRefreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(86400) // 1 day
-                .build();
-
-        response.addHeader("Set-Cookie", accessTokenCookie.toString());
-        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
-
-        // 4. REDIRECT to the frontend
-        // This sends the browser back to your Next.js app with the cookies set
+        // Redirect to the frontend
         response.sendRedirect(frontendUrl);
     }
 }

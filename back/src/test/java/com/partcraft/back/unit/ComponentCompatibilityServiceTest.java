@@ -3,6 +3,7 @@ package com.partcraft.back.unit;
 import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
 import com.partcraft.back.dto.componentDTO.helper.Size;
+import com.partcraft.back.enums.ComponentType;
 import com.partcraft.back.exception.service.ComponentCompatibilityServiceException;
 import com.partcraft.back.service.ComponentCompatibilityService;
 import org.junit.jupiter.api.BeforeEach;
@@ -89,7 +90,7 @@ public class ComponentCompatibilityServiceTest {
         Size gpuSize = new Size(100.0, 200.0, 40.0);
         Size maxSize = new Size(120.0, 250.0, 50.0);
         ComponentPlacementDTO placement = new ComponentPlacementDTO();
-        placement.setComponentType("GPU");
+        placement.setComponentType(ComponentType.GPU);
         placement.setMaxSize(maxSize);
         GPUDTO gpu = mock(GPUDTO.class);
         when(gpu.getSize()).thenReturn(gpuSize);
@@ -103,7 +104,7 @@ public class ComponentCompatibilityServiceTest {
         Size gpuSize = new Size(130.0, 260.0, 60.0);
         Size maxSize = new Size(120.0, 250.0, 50.0);
         ComponentPlacementDTO placement = new ComponentPlacementDTO();
-        placement.setComponentType("GPU");
+        placement.setComponentType(ComponentType.GPU);
         placement.setMaxSize(maxSize);
         GPUDTO gpu = mock(GPUDTO.class);
         when(gpu.getSize()).thenReturn(gpuSize);
@@ -127,10 +128,10 @@ public class ComponentCompatibilityServiceTest {
         Size size1 = new Size(40.0, 40.0, 40.0);
         Size size2 = new Size(40.0, 40.0, 40.0);
         ComponentPlacementDTO placement1 = new ComponentPlacementDTO();
-        placement1.setComponentType("CaseCooler");
+        placement1.setComponentType(ComponentType.CaseCooler);
         placement1.setMaxSize(size1);
         ComponentPlacementDTO placement2 = new ComponentPlacementDTO();
-        placement2.setComponentType("CaseCooler");
+        placement2.setComponentType(ComponentType.CaseCooler);
         placement2.setMaxSize(size2);
         CaseCoolerDTO cooler1 = mock(CaseCoolerDTO.class);
         CaseCoolerDTO cooler2 = mock(CaseCoolerDTO.class);
@@ -153,7 +154,7 @@ public class ComponentCompatibilityServiceTest {
         Size size2 = new Size(60.0, 60.0, 60.0);
         when(cooler1.getSize()).thenReturn(size1);
         when(cooler2.getSize()).thenReturn(size2);
-        placement1.setComponentType("CaseCooler");
+        placement1.setComponentType(ComponentType.CaseCooler);
         placement1.setMaxSize(size1);
         when(pcCase.getComponentPlacements()).thenReturn(List.of(placement1));
         assertTrue(service.checkCaseCoolersAndCaseCompatibility(new CaseCoolerDTO[]{cooler1, cooler2}, pcCase, cpuCooler).isPresent());
@@ -167,7 +168,7 @@ public class ComponentCompatibilityServiceTest {
         CPUDTO cpu = mock(CPUDTO.class);
         MotherBoardDTO mb = mock(MotherBoardDTO.class);
         ComponentPlacementDTO placement = new ComponentPlacementDTO();
-        placement.setComponentType("CPUCooler");
+        placement.setComponentType(ComponentType.CPUCooler);
         Size coolerSize = new Size(40.0, 40.0, 40.0);
         Size maxSize = new Size(50.0, 50.0, 50.0);
         placement.setMaxSize(maxSize);
@@ -190,7 +191,7 @@ public class ComponentCompatibilityServiceTest {
         CPUCoolerDTO cpuCooler = mock(CPUCoolerDTO.class);
         CaseDTO pcCase = mock(CaseDTO.class);
         ComponentPlacementDTO placement = new ComponentPlacementDTO();
-        placement.setComponentType("CPUCooler");
+        placement.setComponentType(ComponentType.CPUCooler);
         Size coolerSize = new Size(60.0, 60.0, 60.0);
         Size maxSize = new Size(50.0, 50.0, 50.0);
         placement.setMaxSize(maxSize);
@@ -213,13 +214,13 @@ public class ComponentCompatibilityServiceTest {
         // Setup placements for case coolers
         Size radiatorSize = new Size(40.0, 120.0, 40.0);
         ComponentPlacementDTO slot1 = new ComponentPlacementDTO();
-        slot1.setComponentType("CaseCooler");
+        slot1.setComponentType(ComponentType.CaseCooler);
         slot1.setMaxSize(radiatorSize);
         slot1.setX(0.0);
         slot1.setY(0.0);
         slot1.setZ(0.0);
         ComponentPlacementDTO slot2 = new ComponentPlacementDTO();
-        slot2.setComponentType("CaseCooler");
+        slot2.setComponentType(ComponentType.CaseCooler);
         slot2.setMaxSize(radiatorSize);
         slot2.setX(0.0);
         slot2.setY(0.0);
@@ -247,7 +248,7 @@ public class ComponentCompatibilityServiceTest {
         // Only one slot available
         Size radiatorSize = new Size(40.0, 120.0, 40.0);
         ComponentPlacementDTO slot1 = new ComponentPlacementDTO();
-        slot1.setComponentType("CaseCooler");
+        slot1.setComponentType(ComponentType.CaseCooler);
         slot1.setMaxSize(radiatorSize);
         slot1.setX(0.0);
         slot1.setY(0.0);
@@ -263,7 +264,7 @@ public class ComponentCompatibilityServiceTest {
         when(cpuCooler.getMaxTDP()).thenReturn(100L);
         assertThatThrownBy(() -> service.isCPUCoolerCompatible(pc, cpuCooler))
                 .isInstanceOf(ComponentCompatibilityServiceException.class)
-                .hasMessageContaining("Not enough case cooler slots");
+                .hasMessageContaining("Not enough contiguous slots for radiator");
     }
 
     @Test
@@ -274,13 +275,13 @@ public class ComponentCompatibilityServiceTest {
         MotherBoardDTO mb = mock(MotherBoardDTO.class);
         Size radiatorSize = new Size(40.0, 120.0, 40.0);
         ComponentPlacementDTO slot1 = new ComponentPlacementDTO();
-        slot1.setComponentType("CaseCooler");
+        slot1.setComponentType(ComponentType.CaseCooler);
         slot1.setMaxSize(radiatorSize);
         slot1.setX(0.0);
         slot1.setY(0.0);
         slot1.setZ(0.0);
         ComponentPlacementDTO slot2 = new ComponentPlacementDTO();
-        slot2.setComponentType("CaseCooler");
+        slot2.setComponentType(ComponentType.CaseCooler);
         slot2.setMaxSize(radiatorSize);
         slot2.setX(0.0);
         slot2.setY(0.0);
@@ -310,13 +311,13 @@ public class ComponentCompatibilityServiceTest {
         MotherBoardDTO mb = mock(MotherBoardDTO.class);
         Size radiatorSize = new Size(40.0, 120.0, 40.0);
         ComponentPlacementDTO slot1 = new ComponentPlacementDTO();
-        slot1.setComponentType("CaseCooler");
+        slot1.setComponentType(ComponentType.CaseCooler);
         slot1.setMaxSize(radiatorSize);
         slot1.setX(0.0);
         slot1.setY(0.0);
         slot1.setZ(0.0);
         ComponentPlacementDTO slot2 = new ComponentPlacementDTO();
-        slot2.setComponentType("CaseCooler");
+        slot2.setComponentType(ComponentType.CaseCooler);
         slot2.setMaxSize(radiatorSize);
         slot2.setX(0.0);
         slot2.setY(0.0);

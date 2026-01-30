@@ -17,14 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -205,8 +198,8 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("AUTH_ERROR"))
                     .andExpect(jsonPath("$.message").exists());
         }
 
@@ -222,8 +215,8 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("AUTH_CONTROLLER_ERROR"))
-                    .andExpect(jsonPath("$.message").value("Invalid email or password"));
+                    .andExpect(jsonPath("$.code").value("AUTH_ERROR"))
+                    .andExpect(jsonPath("$.message").value("Authentication failed"));
         }
 
         @Test
@@ -235,7 +228,7 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("VALIDATE_USER_DATA_ERROR"))
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                     .andExpect(jsonPath("$.message").value("invalid email format"));
         }
 
@@ -247,7 +240,7 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(jsonPath("$.code").value("VALIDATE_USER_DATA_ERROR"))
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                     .andExpect(jsonPath("$.message").exists());
 
             var tokens = refreshTokenRepository.findAll();
@@ -288,10 +281,10 @@ public class AuthControllerIntegrationTest extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should return 400 if no refresh token is provided")
-        void shouldReturn400IfNoRefreshTokenProvided() throws Exception {
+        @DisplayName("Should return 200 if no refresh token is provided (idempotent logout)")
+        void shouldReturn200IfNoRefreshTokenProvided() throws Exception {
             mockMvc.perform(post("/api/auth/logout"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
         }
 
         @Test

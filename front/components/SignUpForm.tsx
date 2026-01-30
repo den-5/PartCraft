@@ -1,6 +1,8 @@
 'use client';
-import React, {useEffect, useState} from 'react';
-import {ValidateUserData} from '@/utils/ValidateUserData';
+import React, {useEffect} from 'react';
+import {useForm} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {signUpSchema, SignUpFormData} from '@/utils/validationSchemas';
 import {
     useSignupMutation,
     useUsernameAvailabilityQuery,
@@ -13,103 +15,76 @@ import {getErrorMessage} from '@/utils/error-helpers';
 export default function SignUpForm() {
     const dispatch = useDispatch();
     const router = useRouter();
-
-    const [username, setUsername] = useState<string>('');
-    const [usernameError, setUsernameError] = useState<string>('');
-
-    const [password, setPassword] = useState<string>('');
-    const [passwordError, setPasswordError] = useState<string>('');
-
-    const [email, setEmail] = useState<string>('');
-    const [emailError, setEmailError] = useState<string>('');
-
-    const [generalError, setGeneralError] = useState<string>('');
-
     const [signUp, {isLoading}] = useSignupMutation();
-
-    const [isDataValid, setIsDataValid] = useState<boolean>(false);
-
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setError,
+        clearErrors,
+        formState: {errors, isValid},
+    } = useForm<SignUpFormData>({
+        resolver: zodResolver(signUpSchema),
+        mode: 'onBlur',
+    });
+
+    const username = watch('username');
+
+    // Check username availability
     const {
         data: isUsernameAvailable,
         isLoading: isUsernameChecking,
         error: usernameCheckingError,
     } = useUsernameAvailabilityQuery(username, {
-        skip: !ValidateUserData.validateUsername(username),
+        skip: !username || username.length < 5 || !/^[a-zA-Z0-9]+$/.test(username),
     });
 
+    // Handle username availability response
     useEffect(() => {
-        if (ValidateUserData.validateUsername(username)) {
+        if (username && username.length >= 5 && /^[a-zA-Z0-9]+$/.test(username)) {
             if (isUsernameAvailable === false) {
-                setUsernameError('Username is already taken');
-                setIsDataValid(false);
-            } else {
-                setUsernameError('');
-                setIsDataValid(true);
+                setError('username', {
+                    type: 'manual',
+                    message: 'Username is already taken',
+                });
+            } else if (isUsernameAvailable === true) {
+                clearErrors('username');
             }
         }
-        if (
-            usernameCheckingError &&
-            ValidateUserData.validateUsername(username)
-        ) {
-            setUsernameError('Error checking username');
-        }
-    }, [isUsernameAvailable, usernameCheckingError, username]);
-
-    function checkUserData(): boolean {
-        let valid = true;
-        setUsernameError('');
-        setPasswordError('');
-        setEmailError('');
-        setGeneralError('');
-
-        if (!ValidateUserData.validateUsername(username)) {
-            setUsernameError('5-20 alphanumeric characters and numbers only');
-            valid = false;
-        }
-        if (!isUsernameAvailable) {
-            setUsernameError('Username is already taken');
-            return false;
-        }
-        if (!ValidateUserData.validatePassword(password)) {
-            setPasswordError(
-                'At least 8 chars, 1 digit, 1 lower, 1 upper, 1 special, no spaces',
-            );
-            valid = false;
-        }
-        if (!ValidateUserData.validateEmail(email)) {
-            setEmailError(
-                'local-part@domain.tld (TLD must be at least 2 characters)',
-            );
-            valid = false;
-        }
-        return valid;
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setGeneralError('');
-        if (!checkUserData()) return;
-
-        const user = await signUp({username, password, email})
-            .unwrap()
-            .catch(err => {
-                const msg = getErrorMessage(err);
-                setGeneralError(msg);
-                return undefined;
+        if (usernameCheckingError && username && username.length >= 5) {
+            setError('username', {
+                type: 'manual',
+                message: 'Error checking username availability',
             });
+        }
+    }, [isUsernameAvailable, usernameCheckingError, username, setError, clearErrors]);
 
-        if (user) {
-            dispatch(setCredentials(user));
+    const onSubmit = async (data: SignUpFormData) => {
+        if (isUsernameAvailable === false) {
+            setError('username', {type: 'manual', message: 'Username is already taken'});
+            return;
+        }
+
+        try {
+            const userData = await signUp({
+                username: data.username,
+                email: data.email,
+                password: data.password,
+            }).unwrap();
+            dispatch(setCredentials(userData));
             router.push('/');
+        } catch (err) {
+            const msg = getErrorMessage(err);
+            setError('root', {message: msg});
         }
     };
 
     const inputClasses = 'w-full px-4 py-3 bg-gray-800/80 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200';
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Username Field */}
             <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -137,18 +112,16 @@ export default function SignUpForm() {
                     <input
                         type="text"
                         placeholder="Choose a username"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
+                        {...register('username')}
                         className={`${inputClasses} pl-10`}
                     />
                     {isUsernameChecking && (
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <div
-                                className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     )}
                 </div>
-                {usernameError && (
+                {errors.username && (
                     <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
                         <svg
                             className="w-4 h-4"
@@ -163,7 +136,7 @@ export default function SignUpForm() {
                                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                         </svg>
-                        {usernameError}
+                        {errors.username.message}
                     </div>
                 )}
             </div>
@@ -195,12 +168,11 @@ export default function SignUpForm() {
                     <input
                         type="email"
                         placeholder="your@email.com"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
+                        {...register('email')}
                         className={`${inputClasses} pl-10`}
                     />
                 </div>
-                {emailError && (
+                {errors.email && (
                     <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
                         <svg
                             className="w-4 h-4"
@@ -215,7 +187,7 @@ export default function SignUpForm() {
                                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                         </svg>
-                        {emailError}
+                        {errors.email.message}
                     </div>
                 )}
             </div>
@@ -247,12 +219,11 @@ export default function SignUpForm() {
                     <input
                         type="password"
                         placeholder="Create a strong password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
+                        {...register('password')}
                         className={`${inputClasses} pl-10`}
                     />
                 </div>
-                {passwordError && (
+                {errors.password && (
                     <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
                         <svg
                             className="w-4 h-4"
@@ -267,7 +238,7 @@ export default function SignUpForm() {
                                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                         </svg>
-                        {passwordError}
+                        {errors.password.message}
                     </div>
                 )}
             </div>
@@ -275,13 +246,12 @@ export default function SignUpForm() {
             {/* Submit Button */}
             <button
                 type="submit"
-                disabled={isLoading || !isDataValid}
+                disabled={isLoading || !isValid || isUsernameAvailable === false}
                 className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 flex items-center justify-center gap-3"
             >
                 {isLoading ? (
                     <>
-                        <div
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Creating account...
                     </>
                 ) : (
@@ -305,7 +275,7 @@ export default function SignUpForm() {
             </button>
 
             {/* General Error */}
-            {generalError && (
+            {errors.root && (
                 <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-4 flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg
@@ -322,7 +292,7 @@ export default function SignUpForm() {
                             />
                         </svg>
                     </div>
-                    <p className="text-red-400 font-medium">{generalError}</p>
+                    <p className="text-red-400 font-medium">{errors.root.message}</p>
                 </div>
             )}
 

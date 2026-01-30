@@ -178,4 +178,12 @@ public class UserService {
         } while (userRepository.findUserByUsername(candidate).isPresent());
         return candidate;
     }
+
+    public User getUserEntityByEmail(String email) {
+        if (!VerifyUserDataFormat.verifyEmailFormat(email)) {
+            throw new UserServiceException("Invalid email format");
+        }
+        return userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User with email " + email + " not found"));
+    }
 }

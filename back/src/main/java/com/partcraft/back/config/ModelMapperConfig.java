@@ -12,7 +12,6 @@ public class ModelMapperConfig {
     public ModelMapper modelMapper() {
         ModelMapper modelMapper = new ModelMapper();
 
-        // Configure to skip null properties during mapping
         modelMapper.getConfiguration()
                 .setSkipNullEnabled(true)
                 .setMatchingStrategy(MatchingStrategies.STRICT);

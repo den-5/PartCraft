@@ -16,6 +16,7 @@ import com.partcraft.back.service.helper.ComponentRepositoryManager;
 import com.partcraft.back.service.helper.SetPCComponentsManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.modelmapper.ModelMapper;
 
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ public class PCServiceTest {
     private PCService pcService;
     private SetPCComponentsManager setPCComponentsManager;
     private ComponentCompatibilityService compatibilityService;
+    private ModelMapper modelMapper;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +41,8 @@ public class PCServiceTest {
         components = mock(ComponentRepositoryManager.class);
         setPCComponentsManager = new SetPCComponentsManager(components);
         compatibilityService = mock(ComponentCompatibilityService.class);
-        pcService = new PCService(pcRepository, userService, userRepository, components, setPCComponentsManager, compatibilityService);
+        modelMapper = new ModelMapper();
+        pcService = new PCService(pcRepository, userService, userRepository, components, setPCComponentsManager, compatibilityService, modelMapper);
     }
 
     @Test

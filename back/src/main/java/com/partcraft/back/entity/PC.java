@@ -4,6 +4,7 @@ import com.partcraft.back.entity.component.*;
 import com.partcraft.back.enums.VisibilityState;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,6 +55,7 @@ public class PC {
             joinColumns = @JoinColumn(name = "pc_id"),
             inverseJoinColumns = @JoinColumn(name = "case_cooler_id")
     )
+    @BatchSize(size = 20)
     private List<CaseCooler> coolers;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -83,6 +85,7 @@ public class PC {
     private VisibilityState visibility;
 
     @ElementCollection
+    @BatchSize(size = 20)
     private List<String> tags;
 
     @PrePersist

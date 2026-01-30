@@ -12,6 +12,7 @@ import com.partcraft.back.repository.PCRepository;
 import com.partcraft.back.repository.UserRepository;
 import com.partcraft.back.service.helper.ComponentRepositoryManager;
 import com.partcraft.back.service.helper.SetPCComponentsManager;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,18 +25,20 @@ public class PCService {
     public final ComponentRepositoryManager components;
     public final SetPCComponentsManager setPCComponentsManager;
     public final ComponentCompatibilityService compatibilityService;
+    private final ModelMapper modelMapper;
 
 
     public PCService(PCRepository pcRepository, UserService userService,
                      UserRepository userRepository, ComponentRepositoryManager components,
                      SetPCComponentsManager setPCComponentsManager,
-                     ComponentCompatibilityService compatibilityService) {
+                     ComponentCompatibilityService compatibilityService, ModelMapper modelMapper) {
         this.pcRepository = pcRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.components = components;
         this.setPCComponentsManager = setPCComponentsManager;
         this.compatibilityService = compatibilityService;
+        this.modelMapper = modelMapper;
     }
 
     public PCDTO createPC(CreatePCDTO createPCDTO, String username) throws PCServiceException {
@@ -51,26 +54,7 @@ public class PCService {
         pc.setVisibility(createPCDTO.getVisibility());
         setPCComponentsManager.setAllComponents(pc, createPCDTO);
 
-        // Compatibility checks
-        try {
-            if (pc.getCpu() != null && pc.getMotherboard() != null) {
-                compatibilityService.isCpuAndMotherboardCompatible(new CPUDTO(pc.getCpu()), new MotherBoardDTO(pc.getMotherboard()));
-            }
-            if (pc.getMotherboard() != null && pc.getRamKit() != null) {
-                compatibilityService.isMotherboardAndRAMCompatible(new MotherBoardDTO(pc.getMotherboard()), new RAMKitDTO(pc.getRamKit()));
-            }
-            if (pc.getGpu() != null && pc.getPcCase() != null) {
-                compatibilityService.isGPUAndCaseCompatible(new GPUDTO(pc.getGpu()), new CaseDTO(pc.getPcCase()));
-            }
-            if (pc.getCpuCooler() != null) {
-                compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
-            }
-            if (pc.getPsu() != null){
-                compatibilityService.isPSUCompatible(mapToDTO(pc), new PSUDTO(pc.getPsu()));
-            }
-        } catch (ComponentCompatibilityServiceException e) {
-            throw new PCServiceException("Component compatibility error: " + e.getMessage());
-        }
+        validateComponentCompatibility(pc);
 
         var savedPc = pcRepository.save(pc);
         return mapToDTO(savedPc);
@@ -96,26 +80,7 @@ public class PCService {
 
         setPCComponentsManager.setAllComponents(pc, updatePCDTO);
 
-        // Compatibility checks
-        try {
-            if (pc.getCpu() != null && pc.getMotherboard() != null) {
-                compatibilityService.isCpuAndMotherboardCompatible(new CPUDTO(pc.getCpu()), new MotherBoardDTO(pc.getMotherboard()));
-            }
-            if (pc.getMotherboard() != null && pc.getRamKit() != null) {
-                compatibilityService.isMotherboardAndRAMCompatible(new MotherBoardDTO(pc.getMotherboard()), new RAMKitDTO(pc.getRamKit()));
-            }
-            if (pc.getGpu() != null && pc.getPcCase() != null) {
-                compatibilityService.isGPUAndCaseCompatible(new GPUDTO(pc.getGpu()), new CaseDTO(pc.getPcCase()));
-            }
-            if (pc.getCpuCooler() != null) {
-                compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
-            }
-            if (pc.getPsu() != null){
-                compatibilityService.isPSUCompatible(mapToDTO(pc), new PSUDTO(pc.getPsu()));
-            }
-        } catch (ComponentCompatibilityServiceException e) {
-            throw new PCServiceException("Component compatibility error: " + e.getMessage());
-        }
+        validateComponentCompatibility(pc);
 
         pcRepository.save(pc);
         return mapToDTO(pc);
@@ -149,32 +114,30 @@ public class PCService {
 
 
     private PCDTO mapToDTO(PC pc) {
-        var dto = new PCDTO();
-        dto.setId(pc.getId());
-        dto.setOwnerId(pc.getOwner().getId());
-        dto.setName(pc.getName());
-        dto.setDescription(pc.getDescription());
-        dto.setPurpose(pc.getPurpose());
-        dto.setCpu(pc.getCpu() != null ? new CPUDTO(pc.getCpu()) : null);
-        dto.setGpu(pc.getGpu() != null ? new GPUDTO(pc.getGpu()) : null);
-        dto.setRamKit(pc.getRamKit() != null ? new RAMKitDTO(pc.getRamKit()) : null);
-        dto.setStorage(pc.getStorage() != null ? new StorageDTO(pc.getStorage()) : null);
-        dto.setPsu(pc.getPsu() != null ? new PSUDTO(pc.getPsu()) : null);
-        dto.setCpuCooler(pc.getCpuCooler() != null ? new CPUCoolerDTO(pc.getCpuCooler()) : null);
-        dto.setMotherboard(pc.getMotherboard() != null ? new MotherBoardDTO(pc.getMotherboard()) : null);
-        dto.setPcCase(pc.getPcCase() != null ? new CaseDTO(pc.getPcCase()) : null);
-        dto.setCoolers(pc.getCoolers() != null ? pc.getCoolers().stream().map(CaseCoolerDTO::new).toList() : null);
-        dto.setBenchmarkScore(pc.getBenchmarkScore());
-        dto.setTemperatureIdleC(pc.getTemperatureIdleC());
-        dto.setTemperatureLoadC(pc.getTemperatureLoadC());
-        dto.setNoiseLevelDb(pc.getNoiseLevelDb());
-        dto.setEstimatedValueUsd(pc.getEstimatedValueUsd());
-        dto.setTotalPowerDrawW(pc.getTotalPowerDrawW());
-        dto.setCreatedAt(pc.getCreatedAt());
-        dto.setUpdatedAt(pc.getUpdatedAt());
-        dto.setLocation(pc.getLocation());
-        dto.setVisibility(pc.getVisibility());
-        dto.setTags(pc.getTags());
-        return dto;
+        PCDTO pcDTO = modelMapper.map(pc, PCDTO.class);
+        pcDTO.setOwnerId(pc.getOwner().getId());
+        return pcDTO;
+    }
+
+    private void validateComponentCompatibility(PC pc) {
+        try {
+            if (pc.getCpu() != null && pc.getMotherboard() != null) {
+                compatibilityService.isCpuAndMotherboardCompatible(new CPUDTO(pc.getCpu()), new MotherBoardDTO(pc.getMotherboard()));
+            }
+            if (pc.getMotherboard() != null && pc.getRamKit() != null) {
+                compatibilityService.isMotherboardAndRAMCompatible(new MotherBoardDTO(pc.getMotherboard()), new RAMKitDTO(pc.getRamKit()));
+            }
+            if (pc.getGpu() != null && pc.getPcCase() != null) {
+                compatibilityService.isGPUAndCaseCompatible(new GPUDTO(pc.getGpu()), new CaseDTO(pc.getPcCase()));
+            }
+            if (pc.getCpuCooler() != null) {
+                compatibilityService.isCPUCoolerCompatible(mapToDTO(pc), new CPUCoolerDTO(pc.getCpuCooler()));
+            }
+            if (pc.getPsu() != null) {
+                compatibilityService.isPSUCompatible(mapToDTO(pc), new PSUDTO(pc.getPsu()));
+            }
+        } catch (ComponentCompatibilityServiceException e) {
+            throw new PCServiceException("Component compatibility error: " + e.getMessage());
+        }
     }
 }

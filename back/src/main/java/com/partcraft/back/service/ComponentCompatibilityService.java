@@ -2,13 +2,13 @@ package com.partcraft.back.service;
 
 import com.partcraft.back.dto.PC.PCDTO;
 import com.partcraft.back.dto.componentDTO.*;
+import com.partcraft.back.enums.ComponentType;
 import com.partcraft.back.enums.CoolingType;
 import com.partcraft.back.exception.service.ComponentCompatibilityServiceException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 
@@ -20,7 +20,7 @@ public class ComponentCompatibilityService {
         if (motherboard.getSocketType() == null || cpu.getSocketType() == null) {
             throw new ComponentCompatibilityServiceException("CPU or motherboard socket type is null");
         }
-        if (!Objects.equals(motherboard.getSocketType(), cpu.getSocketType())) {
+        if (!motherboard.getSocketType().equals(cpu.getSocketType())) {
             throw new ComponentCompatibilityServiceException("CPU and motherboard sockets do not match");
         }
         return true;
@@ -31,7 +31,7 @@ public class ComponentCompatibilityService {
         if (motherboard.getMemoryType() == null || ramKit.getRamType() == null) {
             throw new ComponentCompatibilityServiceException("Motherboard or RAM memory type is null");
         }
-        if (!Objects.equals(motherboard.getMemoryType(), ramKit.getRamType())) {
+        if (!motherboard.getMemoryType().equals(ramKit.getRamType())) {
             throw new ComponentCompatibilityServiceException("Motherboard and RAM memory types do not match");
         }
         return true;
@@ -41,7 +41,7 @@ public class ComponentCompatibilityService {
 
         var gpuSize = gpu.getSize();
         var gpuPlacement = pcCase.getComponentPlacements().stream()
-                .filter(component -> Objects.equals(component.getComponentType(), "GPU"))
+                .filter(component -> component.getComponentType() == ComponentType.GPU)
                 .findFirst()
                 .orElseThrow(() -> new ComponentCompatibilityServiceException("GPU component placement not found in case"));
         var gpuMaxSize = gpuPlacement.getMaxSize();
@@ -53,7 +53,7 @@ public class ComponentCompatibilityService {
     public Optional<List<CaseCoolerDTO>> checkCaseCoolersAndCaseCompatibility(CaseCoolerDTO[] caseCoolers, CaseDTO pcCase, CPUCoolerDTO cpuCooler) {
 
         var places = pcCase.getComponentPlacements().stream()
-                .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
+                .filter(component -> component.getComponentType() == ComponentType.CaseCooler)
                 .toList();
 
         List<CaseCoolerDTO> coolersLeft = new ArrayList<>(List.of(caseCoolers));
@@ -76,7 +76,7 @@ public class ComponentCompatibilityService {
 
         if (cpuCooler.getCoolingType() == CoolingType.Air) {
             var airCoolerPlace = pc.getPcCase().getComponentPlacements().stream()
-                    .filter(component -> Objects.equals(component.getComponentType(), "CPUCooler"))
+                    .filter(component -> component.getComponentType() == ComponentType.CPUCooler)
                     .findFirst();
 
             if (airCoolerPlace.isEmpty()) {
@@ -105,7 +105,7 @@ public class ComponentCompatibilityService {
 
 
         var slotsInPCCase = pc.getPcCase().getComponentPlacements().stream()
-                .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
+                .filter(component -> component.getComponentType() == ComponentType.CaseCooler)
                 .filter(component -> component.getMaxSize().getWidth() >= cpuCooler.getSize().getWidth())
                 .filter(component -> component.getMaxSize().getHeight() >= cpuCooler.getSize().getHeight())
                 .toList();
@@ -116,7 +116,7 @@ public class ComponentCompatibilityService {
                 : cpuCooler.getFanCount();
 
 
-        Long maxAvailableSlotsInTheRow = Math.max(
+        long maxAvailableSlotsInTheRow = Math.max(
                 Math.max(slotsInPCCase.stream().filter(c -> c.getX() == 0).count(),
                         slotsInPCCase.stream().filter(c -> c.getY() == 0).count()),
                 Math.max(slotsInPCCase.stream().filter(c -> c.getX() == -1).count(),
@@ -129,7 +129,7 @@ public class ComponentCompatibilityService {
 
 
         var places = new ArrayList<>(pc.getPcCase().getComponentPlacements().stream()
-                .filter(component -> Objects.equals(component.getComponentType(), "CaseCooler"))
+                .filter(component -> component.getComponentType() == ComponentType.CaseCooler)
                 .toList());
 
         int removedElements = 0;
@@ -144,7 +144,7 @@ public class ComponentCompatibilityService {
         }
 
 
-        List<CaseCoolerDTO> coolersLeft = new ArrayList<>(pc.getCoolers());
+        List<CaseCoolerDTO> coolersLeft = pc.getCoolers() != null ? new ArrayList<>(pc.getCoolers()) : new ArrayList<>();
         for (var place : places) {
             for (int j = 0; j < coolersLeft.size(); j++) {
                 if (place.getMaxSize().getHeight() >= coolersLeft.get(j).getSize().getHeight()) {
@@ -188,7 +188,7 @@ public class ComponentCompatibilityService {
 
         if (pc.getCoolers() != null) {
             totalPowerDraw += pc.getCoolers().stream()
-                    .mapToInt(cooler -> cooler.getPowerDraw() != null ? cooler.getPowerDraw() : 0) // Check for null!
+                    .mapToInt(cooler -> cooler.getPowerDraw() != null ? cooler.getPowerDraw() : 0)
                     .sum();
         }
 

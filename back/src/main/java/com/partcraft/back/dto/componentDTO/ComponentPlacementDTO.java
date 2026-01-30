@@ -2,6 +2,7 @@ package com.partcraft.back.dto.componentDTO;
 
 import com.partcraft.back.dto.componentDTO.helper.Size;
 import com.partcraft.back.entity.ComponentPlacement;
+import com.partcraft.back.enums.ComponentType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,7 @@ import lombok.Setter;
 @Setter
 public class ComponentPlacementDTO {
     private Long componentId;
-    private String componentType;
+    private ComponentType componentType;
     private Size maxSize;
     private Double x;
     private Double y;

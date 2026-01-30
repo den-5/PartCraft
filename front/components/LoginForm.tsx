@@ -1,6 +1,8 @@
 'use client';
-import React, { useState } from 'react';
-import { ValidateUserData } from '@/utils/ValidateUserData';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, LoginFormData } from '@/utils/validationSchemas';
 import { useLoginMutation } from '@/features/auth/authApi';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/features/auth/authSlice';
@@ -10,54 +12,29 @@ import { isFetchBaseQueryError, getErrorMessage } from '@/utils/error-helpers';
 export default function LoginForm() {
     const dispatch = useDispatch();
     const router = useRouter();
-
-    const [password, setPassword] = useState<string>('');
-    const [passwordError, setPasswordError] = useState<string>('');
-
-    const [email, setEmail] = useState<string>('');
-    const [emailError, setEmailError] = useState<string>('');
-
-    const [generalError, setGeneralError] = useState<string>('');
-
     const [login, { isLoading }] = useLoginMutation();
-
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-    function checkUserData(): boolean {
-        let valid = true;
-        setPasswordError('');
-        setEmailError('');
-        setGeneralError('');
+    const {
+        register,
+        handleSubmit,
+        setError,
+        formState: { errors },
+    } = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        mode: 'onBlur',
+    });
 
-        if (!ValidateUserData.validatePassword(password)) {
-            setPasswordError(
-                'At least 8 chars, 1 digit, 1 lower, 1 upper, 1 special, no spaces',
-            );
-            valid = false;
-        }
-        if (!ValidateUserData.validateEmail(email)) {
-            setEmailError(
-                'local-part@domain.tld (TLD must be at least 2 characters)',
-            );
-            valid = false;
-        }
-        return valid;
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setGeneralError('');
-        if (!checkUserData()) return;
-
+    const onSubmit = async (data: LoginFormData) => {
         try {
-            const userData = await login({ email, password }).unwrap();
+            const userData = await login(data).unwrap();
             dispatch(setCredentials(userData));
             router.push('/');
         } catch (err) {
             if (isFetchBaseQueryError(err)) {
-                setGeneralError(getErrorMessage(err));
+                setError('root', { message: getErrorMessage(err) });
             } else {
-                setGeneralError('An unexpected error occurred.');
+                setError('root', { message: 'An unexpected error occurred.' });
             }
         }
     };
@@ -65,7 +42,7 @@ export default function LoginForm() {
     const inputClasses = 'w-full px-4 py-3 bg-gray-800/80 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200';
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email Field */}
             <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -83,17 +60,16 @@ export default function LoginForm() {
                     <input
                         type="email"
                         placeholder="your@email.com"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
+                        {...register('email')}
                         className={`${inputClasses} pl-10`}
                     />
                 </div>
-                {emailError && (
+                {errors.email && (
                     <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {emailError}
+                        {errors.email.message}
                     </div>
                 )}
             </div>
@@ -115,17 +91,16 @@ export default function LoginForm() {
                     <input
                         type="password"
                         placeholder="Enter your password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
+                        {...register('password')}
                         className={`${inputClasses} pl-10`}
                     />
                 </div>
-                {passwordError && (
+                {errors.password && (
                     <div className="flex items-center gap-2 mt-2 text-red-400 text-sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {passwordError}
+                        {errors.password.message}
                     </div>
                 )}
             </div>
@@ -152,14 +127,14 @@ export default function LoginForm() {
             </button>
 
             {/* General Error */}
-            {generalError && (
+            {errors.root && (
                 <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-4 flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </div>
-                    <p className="text-red-400 font-medium">{generalError}</p>
+                    <p className="text-red-400 font-medium">{errors.root.message}</p>
                 </div>
             )}
 
